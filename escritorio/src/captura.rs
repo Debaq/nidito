@@ -81,6 +81,11 @@ pub fn ejecutar(dir: &str) {
     paso(&mut esc, &mut cx, 0.5);
     ev(&mut esc, &mut cx, Ev::Mueve(70.0, 70.0));
     foto(&mut esc, &mut cx, &mut l, dir, "00-escritorio");
+    for _ in 0..4 {
+        esc.actualizar(31.0, &mut cx); // fuerza que los gatitos se cambien de lugar
+    }
+    paso(&mut esc, &mut cx, 0.1);
+    foto(&mut esc, &mut cx, &mut l, dir, "00b-escritorio-gatos-movidos");
 
     clic(&mut esc, &mut cx, 60.0, 580.0);
     ev(&mut esc, &mut cx, Ev::Mueve(120.0, 300.0));

@@ -206,6 +206,10 @@ enum Dialogo {
 pub struct Escritorio {
     apps: Vec<Info>,
     fondo: Pixmap,
+    manada: crate::gatitos::Manada,
+    /// segundos para que el próximo gato se cambie de lugar
+    gatos_t: f32,
+    fondo_viejo: bool,
     ventanas: Vec<Ventana>,
     arrastre: Option<(usize, f32, f32)>,
     captura: Option<usize>,
@@ -277,43 +281,54 @@ fn hora() -> (String, String) {
     )
 }
 
+/// Fondo del escritorio (cielo, cerros, casa, gatitos e íconos). Se rehace cuando un gato se mueve.
+fn pintar_fondo(l: &mut Lienzo, apps: &[Info], manada: &crate::gatitos::Manada) -> Pixmap {
+    let mut fondo = Pixmap::new(W, H).unwrap();
+    l.con(&mut fondo, |l| {
+        let (w, h) = (W as f32, H as f32);
+        l.degradado_v(0.0, 0.0, w, h, rgb(110, 190, 240), rgb(200, 235, 255));
+        // sol
+        for k in 0..12 {
+            let a = k as f32 * PI / 6.0;
+            l.linea(860.0 + a.cos() * 62.0, 250.0 + a.sin() * 62.0, 860.0 + a.cos() * 82.0, 250.0 + a.sin() * 82.0, 8.0, rgb(255, 220, 90));
+        }
+        l.circulo(860.0, 250.0, 50.0, rgb(255, 225, 90));
+        // nubes
+        for &(x, y, s) in &[(420.0, 70.0, 1.0), (640.0, 150.0, 0.8), (520.0, 260.0, 0.6)] {
+            for &(dx, dy, r) in &[(0.0, 0.0, 30.0), (34.0, -14.0, 38.0), (70.0, 0.0, 30.0), (34.0, 8.0, 28.0)] {
+                l.circulo(x + dx * s, y + dy * s, r * s, alfa(BLANCO, 0.9));
+            }
+        }
+        // cerros
+        l.ovalo(300.0, h + 40.0, 520.0, 200.0, rgb(120, 200, 110));
+        l.ovalo(850.0, h + 60.0, 420.0, 230.0, rgb(90, 180, 95));
+        for &(x, y) in &[(560.0, 470.0), (640.0, 500.0), (720.0, 455.0), (800.0, 420.0), (470.0, 500.0), (900.0, 440.0)] {
+            dibujos::dibujar(l, Obj::Flor, x, y, 34.0);
+        }
+        dibujos::dibujar(l, Obj::Arbol, 960.0, 400.0, 150.0);
+        dibujos::dibujar(l, Obj::Casa, 660.0, 380.0, 120.0);
+        manada.dibujar(l);
+        // íconos fijos (solo el que está bajo el ratón se redibuja)
+        for (i, info) in apps.iter().enumerate() {
+            let r = icono_r(i);
+            icono(l, info.ic, r.cx(), r.y + 48.0, 76.0, info.color);
+            l.texto_c_borde(info.titulo, r.cx(), r.y + 106.0, 19.0, BLANCO, alfa(TINTA, 0.8), 1.5);
+        }
+    });
+    fondo
+}
+
 impl Escritorio {
     pub fn nuevo(l: &mut Lienzo, cfg: &Config) -> Escritorio {
         let apps = lista();
-        let mut fondo = Pixmap::new(W, H).unwrap();
-        l.con(&mut fondo, |l| {
-            let (w, h) = (W as f32, H as f32);
-            l.degradado_v(0.0, 0.0, w, h, rgb(110, 190, 240), rgb(200, 235, 255));
-            // sol
-            for k in 0..12 {
-                let a = k as f32 * PI / 6.0;
-                l.linea(860.0 + a.cos() * 62.0, 250.0 + a.sin() * 62.0, 860.0 + a.cos() * 82.0, 250.0 + a.sin() * 82.0, 8.0, rgb(255, 220, 90));
-            }
-            l.circulo(860.0, 250.0, 50.0, rgb(255, 225, 90));
-            // nubes
-            for &(x, y, s) in &[(420.0, 70.0, 1.0), (640.0, 150.0, 0.8), (520.0, 260.0, 0.6)] {
-                for &(dx, dy, r) in &[(0.0, 0.0, 30.0), (34.0, -14.0, 38.0), (70.0, 0.0, 30.0), (34.0, 8.0, 28.0)] {
-                    l.circulo(x + dx * s, y + dy * s, r * s, alfa(BLANCO, 0.9));
-                }
-            }
-            // cerros
-            l.ovalo(300.0, h + 40.0, 520.0, 200.0, rgb(120, 200, 110));
-            l.ovalo(850.0, h + 60.0, 420.0, 230.0, rgb(90, 180, 95));
-            for &(x, y) in &[(560.0, 470.0), (640.0, 500.0), (720.0, 455.0), (800.0, 420.0), (470.0, 500.0), (900.0, 440.0)] {
-                dibujos::dibujar(l, Obj::Flor, x, y, 34.0);
-            }
-            dibujos::dibujar(l, Obj::Arbol, 960.0, 400.0, 150.0);
-            dibujos::dibujar(l, Obj::Casa, 660.0, 380.0, 120.0);
-            // íconos fijos (solo el que está bajo el ratón se redibuja)
-            for (i, info) in apps.iter().enumerate() {
-                let r = icono_r(i);
-                icono(l, info.ic, r.cx(), r.y + 48.0, 76.0, info.color);
-                l.texto_c_borde(info.titulo, r.cx(), r.y + 106.0, 19.0, BLANCO, alfa(TINTA, 0.8), 1.5);
-            }
-        });
+        let manada = crate::gatitos::Manada::nueva();
+        let fondo = pintar_fondo(l, &apps, &manada);
         Escritorio {
             apps,
             fondo,
+            manada,
+            gatos_t: 30.0,
+            fondo_viejo: false,
             ventanas: vec![],
             arrastre: None,
             captura: None,
@@ -642,6 +657,14 @@ impl Escritorio {
                 cx.decir_bil(&a, &b);
             }
         }
+        // cada 30 a 60 s un gatito se cambia de lugar (solo se rehace el fondo en ese momento)
+        self.gatos_t -= dt;
+        if self.gatos_t <= 0.0 {
+            self.gatos_t = 30.0 + cx.rng.f() * 30.0;
+            self.manada.mover(cx.rng.f(), cx.rng.f());
+            self.fondo_viejo = true;
+            self.sucio = true;
+        }
         let en_juego = self.foco().is_some_and(|k| self.apps[self.ventanas[k].info].juego);
         match self.tiempo.tick(dt, cx, en_juego) {
             Some(Suceso::JuegosAgotados) => {
@@ -692,6 +715,7 @@ impl Escritorio {
     }
 
     pub fn dibujar(&mut self, l: &mut Lienzo, cx: &Cx) {
+
         if self.tiempo.bloqueado {
             self.tiempo.dibujar(l, cx);
             if let Some(p) = &self.padres {
@@ -703,6 +727,11 @@ impl Escritorio {
         // desde la ventana maximizada más alta (lo de abajo no se ve)
         let desde = self.ventanas.iter().rposition(|v| !v.min && v.max && v.anim >= 1.0);
         if desde.is_none() {
+            // los gatitos se movieron: el fondo se rehace solo cuando está a la vista
+            if self.fondo_viejo {
+                self.fondo = pintar_fondo(l, &self.apps, &self.manada);
+                self.fondo_viejo = false;
+            }
             copiar_opaco(&mut l.pix, &self.fondo, 0, 0);
             self.dibujar_widgets(l, cx);
         }
