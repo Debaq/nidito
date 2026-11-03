@@ -290,9 +290,41 @@ pub fn ejecutar(dir: &str) {
     clic(&mut esc, &mut cx, escritorio::DLG_NO.cx(), escritorio::DLG_NO.cy());
     esc.abrir_padres(&mut cx);
     foto(&mut esc, &mut cx, &mut l, dir, "15-padres");
+    ev(&mut esc, &mut cx, Ev::Tecla(T::Escape));
+    esc.abrir_ajustes(&mut cx);
+    ev(&mut esc, &mut cx, Ev::Mueve(0.0, 0.0));
+    foto(&mut esc, &mut cx, &mut l, dir, "15b-ajustes");
+    ev(&mut esc, &mut cx, Ev::Tecla(T::Escape));
+
+    // pausa para los ojos (cada 1 minuto de uso activo)
+    {
+        let cfg_p = Config { pausa_ojos: 1, ..cfg.clone() };
+        let mut e2 = Escritorio::nuevo(&mut l, &cfg_p);
+        for _ in 0..14 {
+            ev(&mut e2, &mut cx, Ev::Mueve(500.0, 300.0));
+            paso(&mut e2, &mut cx, 5.0);
+        }
+        paso(&mut e2, &mut cx, 3.0);
+        foto(&mut e2, &mut cx, &mut l, dir, "15c-pausa-ojos");
+    }
+    // cumpleaños hoy
+    {
+        use chrono::Datelike;
+        let hoy = chrono::Local::now();
+        let cfg_c = Config { cumpleanos: Some((hoy.day(), hoy.month())), ..cfg.clone() };
+        let mut e3 = Escritorio::nuevo(&mut l, &cfg_c);
+        paso(&mut e3, &mut cx, 4.0);
+        foto(&mut e3, &mut cx, &mut l, dir, "15d-cumpleanos");
+    }
 
     // bloqueo con clave y tiempo de uso
     let cfg2 = Config { sal: "s".into(), clave: crate::tiempo::hash("s", "1234"), juegos_min: 1, ..cfg.clone() };
+    {
+        let mut e4 = Escritorio::nuevo(&mut l, &cfg2);
+        e4.abrir_padres(&mut cx);
+        texto(&mut e4, &mut cx, "12");
+        foto(&mut e4, &mut cx, &mut l, dir, "15e-padres-clave");
+    }
     let mut esc = Escritorio::nuevo(&mut l, &cfg2);
     paso(&mut esc, &mut cx, 0.3);
     texto(&mut esc, &mut cx, "12");

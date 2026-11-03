@@ -15,6 +15,35 @@ pub struct Sonidos {
     pub aplauso: Vec<f32>,
     pub tic: Vec<f32>,
     pub notas: Vec<Vec<f32>>,
+    /// "Cumpleaños feliz" (melodía tradicional, dominio público)
+    pub cumple: Vec<f32>,
+}
+
+/// Melodía de "Cumpleaños feliz" en Do, compás de 3/4. (frecuencia, duración en negras)
+fn melodia_cumple() -> Vec<f32> {
+    let (g4, a4, b4, c5, d5, e5, f5, g5) = (392.0, 440.0, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99);
+    let notas: [(f32, f32); 25] = [
+        (g4, 0.75), (g4, 0.25), (a4, 1.0), (g4, 1.0), (c5, 1.0), (b4, 2.0),
+        (g4, 0.75), (g4, 0.25), (a4, 1.0), (g4, 1.0), (d5, 1.0), (c5, 2.0),
+        (g4, 0.75), (g4, 0.25), (g5, 1.0), (e5, 1.0), (c5, 1.0), (b4, 1.0), (a4, 2.0),
+        (f5, 0.75), (f5, 0.25), (e5, 1.0), (c5, 1.0), (d5, 1.0), (c5, 2.5),
+    ];
+    let negra = 0.42;
+    let mut v = Vec::new();
+    let mut t0 = 0.0;
+    for (f, d) in notas {
+        let dur = d * negra;
+        let n: Vec<f32> = (0..largo(dur + 0.25))
+            .map(|i| {
+                let t = i as f32 / SR as f32;
+                let env = (t / 0.01).min(1.0) * (-t * 2.8).exp() * if t > dur { (1.0 - (t - dur) / 0.25).max(0.0) } else { 1.0 };
+                0.22 * env * ((TAU * f * t).sin() + 0.3 * (TAU * 2.0 * f * t).sin() + 0.1 * (TAU * 3.0 * f * t).sin())
+            })
+            .collect();
+        mezclar_en(&mut v, &n, t0);
+        t0 += dur;
+    }
+    v
 }
 
 struct Ruido(u32);
@@ -172,6 +201,7 @@ impl Sonidos {
             aplauso: recortar(aplauso),
             tic: recortar(tic),
             notas,
+            cumple: recortar(melodia_cumple()),
         }
     }
 }

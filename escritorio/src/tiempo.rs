@@ -139,6 +139,17 @@ impl Tiempo {
         self.ultimo_input = t;
     }
 
+    /// ¿Hubo actividad (teclado/ratón) hace poco?
+    pub fn usando(&self, t: f32) -> bool {
+        t - self.ultimo_input <= INACTIVO
+    }
+
+    /// Cambia el tope diario de juegos (desde Ajustes). 0 = sin tope.
+    pub fn poner_juegos_min(&mut self, min: u32) {
+        self.juegos_lim = if self.activo && min > 0 { Some(min as f32 * 60.0) } else { None };
+        self.aviso_juegos = false; // si con el nuevo tope ya se agotaron, tick avisa y cierra los juegos
+    }
+
     pub fn juegos_agotados(&self) -> bool {
         self.juegos_lim.is_some_and(|l| self.juegos_uso >= l)
     }

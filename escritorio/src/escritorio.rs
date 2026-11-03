@@ -207,6 +207,14 @@ pub struct Escritorio {
     apps: Vec<Info>,
     fondo: Pixmap,
     manada: crate::gatitos::Manada,
+    ajustes: crate::config::Ajustes,
+    es_cumple: bool,
+    /// segundos para que suene "Cumpleaños feliz" después del saludo
+    melodia_t: Option<f32>,
+    /// segundos de uso desde la última pausa para los ojos
+    ojos_uso: f32,
+    /// segundos que quedan de la pausa para los ojos en curso
+    pausa: Option<f32>,
     /// segundos para que el próximo gato se cambie de lugar
     gatos_t: f32,
     fondo_viejo: bool,
@@ -246,6 +254,24 @@ fn tarea_r(k: usize) -> R {
     R::new(132.0 + k as f32 * 150.0, BARRA_Y + 5.0, 144.0, BARRA_H - 10.0)
 }
 
+fn frase_cumple(nombre: &str) -> (String, String) {
+    if nombre.trim().is_empty() {
+        ("¡Feliz cumpleaños!".into(), "Happy birthday!".into())
+    } else {
+        (format!("¡Feliz cumpleaños, {}!", nombre.trim()), format!("Happy birthday, {}!", nombre.trim()))
+    }
+}
+
+const PAUSA_INICIO: (&str, &str) = ("¡Descanso para los ojos! Mira algo que esté lejos, por la ventana.", "Eye break! Look at something far away, out the window.");
+const PAUSA_FIN: (&str, &str) = ("¡Listo! Ya puedes seguir.", "All done! You can keep going.");
+/// Duración de la pausa para los ojos (regla 20-20-20: 20 segundos mirando lejos).
+const PAUSA_SEG: f32 = 20.0;
+
+fn hoy() -> (u32, u32) {
+    let d = chrono::Local::now();
+    (d.day(), d.month())
+}
+
 fn saludo(nombre: &str) -> (String, String) {
     if nombre.trim().is_empty() {
         ("¡Hola! ¿Qué quieres hacer hoy?".into(), "Hello! What do you want to do today?".into())
@@ -257,6 +283,10 @@ fn saludo(nombre: &str) -> (String, String) {
 pub fn frases(f: &mut Frases, llamado: &str) {
     let (a, b) = saludo(llamado);
     f.bil(a, b);
+    let (a, b) = frase_cumple(llamado);
+    f.bil(a, b);
+    f.bil(PAUSA_INICIO.0, PAUSA_INICIO.1);
+    f.bil(PAUSA_FIN.0, PAUSA_FIN.1);
     for i in lista() {
         f.bil(i.titulo, i.en);
     }
@@ -282,7 +312,7 @@ fn hora() -> (String, String) {
 }
 
 /// Fondo del escritorio (cielo, cerros, casa, gatitos e íconos). Se rehace cuando un gato se mueve.
-fn pintar_fondo(l: &mut Lienzo, apps: &[Info], manada: &crate::gatitos::Manada) -> Pixmap {
+fn pintar_fondo(l: &mut Lienzo, apps: &[Info], manada: &crate::gatitos::Manada, cumple: bool) -> Pixmap {
     let mut fondo = Pixmap::new(W, H).unwrap();
     l.con(&mut fondo, |l| {
         let (w, h) = (W as f32, H as f32);
@@ -308,6 +338,9 @@ fn pintar_fondo(l: &mut Lienzo, apps: &[Info], manada: &crate::gatitos::Manada) 
         dibujos::dibujar(l, Obj::Arbol, 960.0, 400.0, 150.0);
         dibujos::dibujar(l, Obj::Casa, 660.0, 380.0, 120.0);
         manada.dibujar(l);
+        if cumple {
+            adornos_cumple(l);
+        }
         // íconos fijos (solo el que está bajo el ratón se redibuja)
         for (i, info) in apps.iter().enumerate() {
             let r = icono_r(i);
@@ -322,11 +355,18 @@ impl Escritorio {
     pub fn nuevo(l: &mut Lienzo, cfg: &Config) -> Escritorio {
         let apps = lista();
         let manada = crate::gatitos::Manada::nueva();
-        let fondo = pintar_fondo(l, &apps, &manada);
+        let ajustes = cfg.ajustes();
+        let es_cumple = ajustes.cumpleanos == Some(hoy());
+        let fondo = pintar_fondo(l, &apps, &manada, es_cumple);
         Escritorio {
             apps,
             fondo,
             manada,
+            ajustes,
+            es_cumple,
+            melodia_t: None,
+            ojos_uso: 0.0,
+            pausa: None,
             gatos_t: 30.0,
             fondo_viejo: false,
             ventanas: vec![],
@@ -429,7 +469,7 @@ impl Escritorio {
     pub fn necesita_cuadro(&mut self, dt: f32) -> bool {
         self.refresco += dt;
         let foco_anim = self.foco().is_some_and(|k| self.ventanas[k].app.animando());
-        let anim = self.ventanas.iter().any(|v| v.anim < 1.0) || self.padres.is_some();
+        let anim = self.ventanas.iter().any(|v| v.anim < 1.0) || self.padres.is_some() || self.pausa.is_some();
         if self.sucio || foco_anim || anim || self.refresco >= 0.25 {
             self.sucio = false;
             self.refresco = 0.0;
@@ -446,6 +486,22 @@ impl Escritorio {
             match p.evento(&ev, cx) {
                 RP::Seguir => {}
                 RP::Cerrar => self.padres = None,
+                RP::Ajustes(a) => {
+                    if let Err(e) = crate::config::guardar_ajustes(&a) {
+                        eprintln!("nidito: no se pudieron guardar los ajustes: {e}");
+                    }
+                    self.tiempo.poner_juegos_min(a.juegos_min);
+                    if a.pausa_ojos != self.ajustes.pausa_ojos {
+                        self.ojos_uso = 0.0;
+                    }
+                    self.ajustes = a;
+                    let cumple = a.cumpleanos == Some(hoy());
+                    if cumple != self.es_cumple {
+                        self.es_cumple = cumple;
+                        self.fondo_viejo = true;
+                    }
+                    self.padres = None;
+                }
                 RP::MasTiempo => {
                     self.tiempo.agregar(10.0);
                     self.padres = None;
@@ -469,10 +525,7 @@ impl Escritorio {
         }
         if self.tiempo.bloqueado {
             match self.tiempo.evento(&ev, cx) {
-                Some(RT::Desbloqueado) => {
-                    let (a, b) = saludo(&llamar(cx));
-                    cx.decir_bil(&a, &b);
-                }
+                Some(RT::Desbloqueado) => self.saludar(cx),
                 Some(RT::Apagar) => {
                     cx.decir_bil("¡Chao! Hasta pronto.", "Bye bye!");
                     return Some(Accion::Apagar);
@@ -480,6 +533,9 @@ impl Escritorio {
                 None => {}
             }
             return None;
+        }
+        if self.pausa.is_some() {
+            return None; // durante la pausa para los ojos no se usa el computador
         }
         if let Some(Dialogo::Apagar) = self.dialogo {
             if let Ev::Clic(x, y) = ev {
@@ -642,8 +698,24 @@ impl Escritorio {
         v
     }
 
+    /// Saludo al entrar: normal, o de cumpleaños con la melodía.
+    fn saludar(&mut self, cx: &mut Cx) {
+        let n = llamar(cx);
+        let (a, b) = if self.es_cumple { frase_cumple(&n) } else { saludo(&n) };
+        cx.decir_bil(&a, &b);
+        if self.es_cumple {
+            self.melodia_t = Some(3.0);
+        }
+    }
+
+    /// Para las pruebas automáticas: menú de adultos ya en Ajustes.
+    pub fn abrir_ajustes(&mut self, cx: &mut Cx) {
+        self.abrir_padres(cx);
+        self.padres = self.padres.take().map(Padres::en_ajustes);
+    }
+
     pub fn abrir_padres(&mut self, cx: &mut Cx) {
-        self.padres = Some(Padres::nuevo(cx, self.tiempo.verificador()));
+        self.padres = Some(Padres::nuevo(cx, self.tiempo.verificador(), self.ajustes));
         self.menu = false;
     }
 
@@ -653,8 +725,33 @@ impl Escritorio {
             if self.tiempo.bloqueado {
                 self.tiempo.saludar(cx);
             } else {
-                let (a, b) = saludo(&llamar(cx));
-                cx.decir_bil(&a, &b);
+                self.saludar(cx);
+            }
+        }
+        // "Cumpleaños feliz" después del saludo
+        if let Some(t) = &mut self.melodia_t {
+            *t -= dt;
+            if *t <= 0.0 {
+                self.melodia_t = None;
+                cx.sonar(Son::Cumpleanos);
+            }
+        }
+        // pausa para los ojos: cada N minutos de uso activo, 20 s mirando lejos
+        if let Some(t) = &mut self.pausa {
+            *t -= dt;
+            if *t <= 0.0 {
+                self.pausa = None;
+                cx.sonar(Son::Ding);
+                cx.decir_bil(PAUSA_FIN.0, PAUSA_FIN.1);
+            }
+        } else if self.ajustes.pausa_ojos > 0 && !self.tiempo.bloqueado && self.padres.is_none() && self.tiempo.usando(cx.t) {
+            self.ojos_uso += dt;
+            if self.ojos_uso >= self.ajustes.pausa_ojos as f32 * 60.0 {
+                self.ojos_uso = 0.0;
+                self.pausa = Some(PAUSA_SEG);
+                self.menu = false;
+                cx.sonar(Son::Whoosh);
+                cx.decir_bil(PAUSA_INICIO.0, PAUSA_INICIO.1);
             }
         }
         // cada 30 a 60 s un gatito se cambia de lugar (solo se rehace el fondo en ese momento)
@@ -691,6 +788,12 @@ impl Escritorio {
         }
         self.reloj_t -= dt;
         if self.reloj_t <= 0.0 {
+            // ¿cambió el día? (por si queda encendido a medianoche)
+            let cumple = self.ajustes.cumpleanos == Some(hoy());
+            if cumple != self.es_cumple {
+                self.es_cumple = cumple;
+                self.fondo_viejo = true;
+            }
             self.reloj = hora();
             self.reloj_t = 5.0;
         }
@@ -729,7 +832,7 @@ impl Escritorio {
         if desde.is_none() {
             // los gatitos se movieron: el fondo se rehace solo cuando está a la vista
             if self.fondo_viejo {
-                self.fondo = pintar_fondo(l, &self.apps, &self.manada);
+                self.fondo = pintar_fondo(l, &self.apps, &self.manada, self.es_cumple);
                 self.fondo_viejo = false;
             }
             copiar_opaco(&mut l.pix, &self.fondo, 0, 0);
@@ -771,6 +874,9 @@ impl Escritorio {
             boton_r(l, DLG_SI, "Sí, apagar", ROJO, cx);
             boton_r(l, DLG_NO, "No", VERDE, cx);
         }
+        if let Some(t) = self.pausa {
+            dibujar_pausa(l, t, cx);
+        }
         if let Some(p) = &self.padres {
             p.dibujar(l, cx);
         }
@@ -783,7 +889,12 @@ impl Escritorio {
         l.texto_c(&h, W as f32 - 174.0, 64.0, 64.0, TINTA);
         l.texto_c(&f, W as f32 - 174.0, 112.0, 24.0, rgb(70, 80, 100));
         let n = llamar(cx);
-        let hola = if n.is_empty() { "¡Hola!".to_string() } else { format!("¡Hola, {n}!") };
+        let hola = match (self.es_cumple, n.is_empty()) {
+            (true, true) => "¡Feliz cumpleaños!".to_string(),
+            (true, false) => format!("¡Feliz cumple, {n}!"),
+            (false, true) => "¡Hola!".to_string(),
+            (false, false) => format!("¡Hola, {n}!"),
+        };
         l.texto_c(&hola, W as f32 - 174.0, 146.0, 26.0, rgb(230, 80, 120));
         let dormidos = self.tiempo.juegos_agotados();
         for (i, info) in self.apps.iter().enumerate() {
@@ -1030,4 +1141,55 @@ fn dibujar_ventana(l: &mut Lienzo, v: &Ventana, info: &Info, activa: bool, cx: &
             }
         }
     }
+}
+
+/// Globos y banderines en el cielo, el día del cumpleaños.
+fn adornos_cumple(l: &mut Lienzo) {
+    // banderines colgando entre la zona de íconos y el reloj
+    let (x0, x1, y0) = (470.0, 690.0, 14.0);
+    let n = 9;
+    let pts: Vec<(f32, f32)> = (0..=n)
+        .map(|i| {
+            let t = i as f32 / n as f32;
+            (x0 + (x1 - x0) * t, y0 + 34.0 * (t * PI).sin())
+        })
+        .collect();
+    l.polilinea(&pts, 2.0, rgb(120, 90, 70));
+    for i in 0..n {
+        let (a, b) = (pts[i], pts[i + 1]);
+        let c = ARCOIRIS[i % ARCOIRIS.len()];
+        l.poligono(&[a, b, ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0 + 28.0)], c);
+    }
+    // globos
+    for &(x, y, c) in &[(500.0, 150.0, ROJO), (560.0, 120.0, AMARILLO), (612.0, 165.0, AZUL), (668.0, 130.0, VERDE), (720.0, 210.0, ROSADO), (470.0, 230.0, MORADO)] {
+        l.polilinea(&[(x, y + 34.0), (x + 6.0, y + 70.0), (x - 4.0, y + 105.0)], 1.5, rgb(110, 110, 120));
+        l.poligono(&[(x - 5.0, y + 38.0), (x + 5.0, y + 38.0), (x, y + 31.0)], oscurecer(c, 0.15));
+        l.ovalo(x, y, 25.0, 32.0, c);
+        l.ovalo(x - 8.0, y - 12.0, 6.0, 10.0, alfa(BLANCO, 0.45));
+    }
+}
+
+/// Pantalla de la pausa para los ojos: ojo que mira lejos y cuenta regresiva.
+fn dibujar_pausa(l: &mut Lienzo, t: f32, cx: &Cx) {
+    let (w, h) = (W as f32, H as f32);
+    l.degradado_v(0.0, 0.0, w, h, rgb(120, 200, 240), rgb(190, 235, 200));
+    // montañas lejanas
+    l.poligono(&[(0.0, h * 0.72), (w * 0.18, h * 0.5), (w * 0.36, h * 0.7), (w * 0.55, h * 0.45), (w * 0.78, h * 0.68), (w, h * 0.52), (w, h), (0.0, h)], rgb(120, 170, 140));
+    l.poligono(&[(w * 0.48, h * 0.52), (w * 0.55, h * 0.45), (w * 0.62, h * 0.52)], BLANCO);
+    // ojo que mira hacia las montañas
+    let (ox, oy) = (w / 2.0, 190.0);
+    let mira = (cx.t * 0.8).sin() * 18.0;
+    l.ovalo(ox, oy, 110.0, 62.0, BLANCO);
+    l.circulo(ox + mira, oy, 42.0, rgb(90, 150, 210));
+    l.circulo(ox + mira, oy, 20.0, TINTA);
+    l.circulo(ox + mira + 12.0, oy - 13.0, 8.0, BLANCO);
+    for k in 0..5 {
+        let a = PI * (0.2 + 0.15 * k as f32);
+        l.linea(ox - a.cos() * 104.0, oy - a.sin() * 56.0, ox - a.cos() * 124.0, oy - a.sin() * 78.0, 5.0, TINTA);
+    }
+    l.texto_c_borde("¡Descanso para los ojos!", w / 2.0, 312.0, 46.0, BLANCO, TINTA, 3.0);
+    l.texto_c_borde("Mira algo lejos, por la ventana", w / 2.0, 368.0, 32.0, BLANCO, alfa(TINTA, 0.8), 2.0);
+    let n = t.ceil().max(0.0) as u32;
+    l.circulo(w / 2.0, 470.0, 52.0, alfa(BLANCO, 0.85));
+    l.texto_c(&n.to_string(), w / 2.0, 470.0, 54.0, TINTA);
 }

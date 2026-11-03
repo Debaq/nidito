@@ -13,11 +13,15 @@ pub enum Pelaje {
     Vaquita,
     /// naranjo atigrado
     Naranjo,
-    /// blanco con manchas naranjas y negras
-    Calico,
-    /// gris parejo
+    /// naranjo pálido parejo, sin rayas (panza del mismo color)
+    NaranjoPalido,
+    /// calico más naranja que blanca (pecho, hocico y patitas blancas, manchas negras)
+    CalicoNaranja,
+    /// calico más negra que blanca (manchas naranjas, pecho y patitas blancas)
+    CalicoNegra,
+    /// gris con rayitas
     Plomo,
-    /// blanco entero
+    /// blanco con una mancha negra en la cola
     Blanco,
 }
 
@@ -28,6 +32,8 @@ pub struct Gato {
     /// true = mira hacia la izquierda (cola al otro lado)
     pub espejo: bool,
     pub ojos: C,
+    /// ancho del cuerpo: < 1 flaquito, > 1 gordito
+    pub ancho: f32,
 }
 
 const NARANJO_G: C = rgb(242, 152, 62);
@@ -101,9 +107,11 @@ const ENCIMA: BlendMode = BlendMode::SourceAtop;
 fn pelo_base(p: Pelaje) -> C {
     match p {
         Pelaje::Smoking => NEGRO_G,
-        Pelaje::Naranjo => NARANJO_G,
+        Pelaje::Naranjo | Pelaje::CalicoNaranja => NARANJO_G,
+        Pelaje::NaranjoPalido => rgb(247, 192, 128),
+        Pelaje::CalicoNegra => NEGRO_G,
         Pelaje::Plomo => PLOMO_G,
-        Pelaje::Vaquita | Pelaje::Calico | Pelaje::Blanco => BLANCO_G,
+        Pelaje::Vaquita | Pelaje::Blanco => BLANCO_G,
     }
 }
 
@@ -123,14 +131,15 @@ fn silueta(c: &mut Capa, g: &Gato, color: C, g_: f32) {
         }
     }
     // cuerpo y patas
-    c.ovalo(0.0, -32.0, 30.0 + g_, 34.0 + g_, color, N);
-    c.ovalo(-11.0, -4.0, 10.0 + g_, 6.5 + g_, color, N);
-    c.ovalo(11.0, -4.0, 10.0 + g_, 6.5 + g_, color, N);
+    let w = g.ancho;
+    c.ovalo(0.0, -32.0, 30.0 * w + g_, 34.0 + g_, color, N);
+    c.ovalo(-11.0 * w, -4.0, 10.0 + g_, 6.5 + g_, color, N);
+    c.ovalo(11.0 * w, -4.0, 10.0 + g_, 6.5 + g_, color, N);
     if peludo {
         for k in 0..9 {
             let a = 0.5 + k as f32 * 0.32; // contorno del cuerpo, lados y abajo
             for lado in [-1.0, 1.0] {
-                c.circulo(lado * a.sin() * 29.0, -32.0 + a.cos() * -31.0 + 6.0, 7.0 + g_, color, N);
+                c.circulo(lado * a.sin() * 29.0 * w, -32.0 + a.cos() * -31.0 + 6.0, 7.0 + g_, color, N);
             }
         }
         // melena del pecho
@@ -187,26 +196,56 @@ fn manchas(c: &mut Capa, g: &Gato) {
                 c.circulo(x, y, 5.5, NARANJO_O, ENCIMA);
             }
         }
-        Pelaje::Calico => {
-            c.circulo(-18.0, -94.0, 17.0, NARANJO_G, ENCIMA);
-            c.circulo(19.0, -86.0, 12.0, NEGRO_G, ENCIMA);
-            c.circulo(17.0, -36.0, 15.0, NARANJO_G, ENCIMA);
-            c.circulo(-17.0, -20.0, 12.0, NEGRO_G, ENCIMA);
-            c.circulo(-6.0, -46.0, 7.0, NARANJO_G, ENCIMA);
-            let (x, y) = bezier(0.75);
-            c.circulo(x, y, 14.0, NARANJO_G, ENCIMA);
-            c.circulo(50.0, -56.0, 9.0, NEGRO_G, ENCIMA);
+        Pelaje::NaranjoPalido => {}
+        Pelaje::CalicoNaranja => {
+            // mucho naranjo, un poco de negro y blanco en pecho, hocico y patitas
+            c.circulo(19.0, -92.0, 13.0, NEGRO_G, ENCIMA);
+            c.circulo(-18.0, -24.0, 13.0, NEGRO_G, ENCIMA);
+            let (x, y) = bezier(0.85);
+            c.circulo(x, y, 10.0, NEGRO_G, ENCIMA);
+            c.ovalo(0.0, -42.0, 13.0, 19.0, BLANCO_G, ENCIMA);
+            c.ovalo(0.0, -66.0, 11.0, 7.0, BLANCO_G, ENCIMA);
+            c.ovalo(-11.0, -4.0, 11.0, 8.0, BLANCO_G, ENCIMA);
+            c.ovalo(11.0, -4.0, 11.0, 8.0, BLANCO_G, ENCIMA);
+        }
+        Pelaje::CalicoNegra => {
+            // mucho negro, manchas naranjas y un poco de blanco
+            c.circulo(-18.0, -96.0, 15.0, NARANJO_G, ENCIMA);
+            c.circulo(20.0, -30.0, 14.0, NARANJO_G, ENCIMA);
+            let (x, y) = bezier(0.6);
+            c.circulo(x, y, 11.0, NARANJO_G, ENCIMA);
+            c.ovalo(0.0, -44.0, 12.0, 17.0, BLANCO_G, ENCIMA);
+            c.poligono(&[(0.0, -84.0), (-10.0, -62.0), (10.0, -62.0)], BLANCO_G, ENCIMA);
+            c.ovalo(-11.0, -4.0, 11.0, 8.0, BLANCO_G, ENCIMA);
+            c.ovalo(11.0, -4.0, 11.0, 8.0, BLANCO_G, ENCIMA);
         }
         Pelaje::Plomo => {
+            let raya = rgb(112, 117, 130);
             c.ovalo(0.0, -68.0, 12.0, 7.0, rgb(196, 200, 210), ENCIMA);
-            c.ovalo(0.0, -42.0, 12.0, 17.0, rgb(176, 181, 192), ENCIMA);
+            c.ovalo(0.0, -42.0, 13.0, 17.0, rgb(176, 181, 192), ENCIMA);
+            for k in [-1.0, 0.0, 1.0] {
+                c.trazar(&[(k * 8.0, -104.0), (k * 7.0, -93.0)], 3.0, raya, ENCIMA);
+            }
+            for k in 0..3 {
+                let y = -48.0 + k as f32 * 12.0;
+                c.trazar(&[(-38.0, y), (-30.0, y + 3.0), (-23.0, y + 1.0)], 3.5, raya, ENCIMA);
+                c.trazar(&[(38.0, y), (30.0, y + 3.0), (23.0, y + 1.0)], 3.5, raya, ENCIMA);
+            }
+            for t in [0.45, 0.7, 0.92] {
+                let (x, y) = bezier(t);
+                c.circulo(x, y, 5.0, raya, ENCIMA);
+            }
         }
-        Pelaje::Blanco => {}
+        Pelaje::Blanco => {
+            // mancha negra en la cola
+            let (x, y) = bezier(0.7);
+            c.circulo(x, y, 10.0, NEGRO_G, ENCIMA);
+        }
     }
 }
 
 fn cara(c: &mut Capa, g: &Gato) {
-    let oscuro = matches!(g.pelaje, Pelaje::Smoking);
+    let oscuro = matches!(g.pelaje, Pelaje::Smoking | Pelaje::CalicoNegra);
     // interior de las orejas (en el smoking y la calico una oreja es de color)
     c.poligono(&[(-25.0, -90.0), (-23.0, -108.0), (-12.0, -98.0)], ROSA, ENCIMA);
     c.poligono(&[(25.0, -90.0), (23.0, -108.0), (12.0, -98.0)], ROSA, ENCIMA);
@@ -243,7 +282,7 @@ pub fn dibujar(l: &mut Lienzo, g: &Gato, x: f32, y: f32, s: f32) {
     let Some(pix) = Pixmap::new(w, h) else { return };
     let mut c = Capa { pix, s, ox: w as f32 / 2.0, oy: h as f32 - 6.0 * s, m: if g.espejo { -1.0 } else { 1.0 } };
     let base = pelo_base(g.pelaje);
-    let contorno = if matches!(g.pelaje, Pelaje::Smoking) { rgb(25, 24, 30) } else { oscurecer(base, 0.45) };
+    let contorno = if matches!(g.pelaje, Pelaje::Smoking | Pelaje::CalicoNegra) { rgb(25, 24, 30) } else { oscurecer(base, 0.45) };
     silueta(&mut c, g, contorno, 1.8);
     silueta(&mut c, g, base, 0.0);
     manchas(&mut c, g);
@@ -280,17 +319,17 @@ impl Manada {
         let verde = rgb(80, 170, 70);
         let azul = rgb(90, 160, 230);
         let ambar = rgb(225, 170, 50);
-        let g = |pelaje, peludo, espejo, ojos| Gato { pelaje, peludo, espejo, ojos };
+        let g = |pelaje, peludo, espejo, ojos, ancho| Gato { pelaje, peludo, espejo, ojos, ancho };
         Manada {
             gatos: [
-                g(Pelaje::Smoking, false, false, verde),
-                g(Pelaje::Naranjo, true, true, ambar),
-                g(Pelaje::Calico, false, false, ambar),
-                g(Pelaje::Plomo, false, true, verde),
-                g(Pelaje::Blanco, false, false, azul),
-                g(Pelaje::Calico, true, true, verde),
-                g(Pelaje::Naranjo, false, false, ambar),
-                g(Pelaje::Vaquita, false, true, verde),
+                g(Pelaje::Smoking, false, false, verde, 1.0),
+                g(Pelaje::Naranjo, true, true, ambar, 1.0),
+                g(Pelaje::CalicoNaranja, false, false, ambar, 1.0),
+                g(Pelaje::Plomo, false, true, verde, 1.3),
+                g(Pelaje::Blanco, false, false, azul, 1.0),
+                g(Pelaje::CalicoNegra, true, true, verde, 1.0),
+                g(Pelaje::NaranjoPalido, false, false, ambar, 0.8),
+                g(Pelaje::Vaquita, false, true, verde, 1.0),
             ],
             lugar: [0, 1, 2, 3, 4, 5, 6, 7],
         }

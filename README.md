@@ -12,7 +12,9 @@ Nidito es un escritorio propio escrito en Rust (sin gestor de ventanas, todo dib
 - **Enciclopedia**: temas con fotos reales y textos cortos que lee la voz, todo en una pantalla y sin deslizar. Trae dos temas: **Animales** (20, con fotos reales y el sonido de 15 de ellos, incluye fauna chilena: pudú, cóndor, pingüino de Humboldt) y **Cuerpo humano** (15 partes, con ilustraciones amables en vez de fotos).
 - **Voz**: unas 820 frases pregrabadas con voces neuronales (edge-tts), procesadas para que se escuchen bien en los parlantes chicos de un netbook. Si falta alguna frase se usa espeak-ng.
 - **Control de tiempo**: al encender, un adulto elige la duración de la sesión (20/30/45/60 min o sin límite). Solo cuenta el tiempo activo, y los juegos tienen un tope diario configurable (20 min por defecto). Pintar, Letras, Escribir y Mi clase no cuentan para ese tope.
-- **Menú de adultos** (`Ctrl+Alt+P`, se entra resolviendo una multiplicación): volumen, +10 minutos, bloquear, terminal, reiniciar y apagar.
+- **Menú de adultos** (`Ctrl+Alt+P`, pide la clave de adultos): volumen, +10 minutos, bloquear, **Ajustes**, terminal, reiniciar y apagar. En Ajustes se cambian los minutos de juego, la pausa para los ojos y el cumpleaños; quedan guardados en `~/.config/nidito.conf`.
+- **Pausa para los ojos**: cada 20 minutos de uso (configurable, 0 = nunca) aparece una pantalla de 20 segundos que pide mirar algo lejos (regla 20-20-20).
+- **Cumpleaños**: ese día el escritorio tiene globos y banderines, saluda con "¡Feliz cumpleaños!" y suena "Cumpleaños feliz".
 - **Instalador sin internet**: borra el disco e instala Nidito. Funciona aunque el disco traiga un Windows viejo o dañado.
 
 ## Personalizar para un niño o niña
@@ -24,6 +26,7 @@ El repositorio trae un perfil genérico (usuario `nino`, sin nombre, saluda con 
 # o directamente:
 ./personalizar.sh "Sofía" "Sofi"          # usuario 'sofia', 20 min de juegos
 ./personalizar.sh "Tomás" "" tomas 30     # sin apodo, 30 min de juegos
+./personalizar.sh "Ana" "" ana 20 15-03 20  # cumpleaños 15 de marzo, pausa para los ojos cada 20 min
 ```
 
 Cada perfil queda en `perfiles/<usuario>.conf`. Esa carpeta **no se sube a git**, porque contiene datos personales. Puedes tener varios perfiles (uno por niño o por equipo) y elegir cuál usar al construir.

@@ -3,7 +3,7 @@
 # Los perfiles quedan en perfiles/<usuario>.conf, que NO se suben a git (datos personales).
 #
 # Uso interactivo:   ./personalizar.sh
-# Uso directo:       ./personalizar.sh "Nombre" "Apodo" [usuario] [minutos_juego]
+# Uso directo:       ./personalizar.sh "Nombre" "Apodo" [usuario] [minutos_juego] [cumpleaños DD-MM] [pausa_ojos_min]
 #
 # Después:           ./preparar.sh <usuario>   y luego   sudo ./construir_iso.sh
 set -euo pipefail
@@ -19,7 +19,7 @@ a_usuario() {
 }
 
 if [ $# -ge 1 ]; then
-    NOMBRE=$1; APODO=${2:-}; USUARIO=${3:-}; JUEGOS=${4:-20}
+    NOMBRE=$1; APODO=${2:-}; USUARIO=${3:-}; JUEGOS=${4:-20}; CUMPLE=${5:-}; PAUSA=${6:-20}
 else
     echo "== Nuevo perfil de Nidito =="
     read -rp "Nombre del niño o niña (como quieres que lo salude): " NOMBRE
@@ -28,6 +28,9 @@ else
     read -rp "Usuario del sistema [${sugerido:-nino}]: " USUARIO
     read -rp "Minutos de juegos por día (0 = sin tope) [20]: " JUEGOS
     JUEGOS=${JUEGOS:-20}
+    read -rp "Cumpleaños como DD-MM, p. ej. 15-03 (opcional, Enter para omitir): " CUMPLE
+    read -rp "Pausa para los ojos cada cuántos minutos (0 = nunca) [20]: " PAUSA
+    PAUSA=${PAUSA:-20}
 fi
 
 [ -n "${NOMBRE// /}" ] || { echo "Falta el nombre."; exit 1; }
@@ -36,6 +39,13 @@ USUARIO=${USUARIO:-nino}
 [[ "$USUARIO" =~ ^[a-z][a-z0-9]{0,15}$ ]] || { echo "Usuario inválido: '$USUARIO' (solo a-z y 0-9, empieza con letra, máx. 16)."; exit 1; }
 case "$USUARIO" in root|bin|daemon|nobody|mail|ftp|http) echo "Usuario reservado: $USUARIO"; exit 1 ;; esac
 [[ "$JUEGOS" =~ ^[0-9]+$ ]] || { echo "Minutos inválidos: $JUEGOS"; exit 1; }
+[[ "$PAUSA" =~ ^[0-9]+$ ]] || { echo "Pausa inválida: $PAUSA"; exit 1; }
+if [ -n "$CUMPLE" ]; then
+    [[ "$CUMPLE" =~ ^([0-9]{1,2})[-/]([0-9]{1,2})$ ]] || { echo "Cumpleaños inválido: '$CUMPLE' (usa DD-MM)"; exit 1; }
+    d=$((10#${BASH_REMATCH[1]})); m=$((10#${BASH_REMATCH[2]}))
+    { [ "$d" -ge 1 ] && [ "$d" -le 31 ] && [ "$m" -ge 1 ] && [ "$m" -le 12 ]; } || { echo "Cumpleaños inválido: $CUMPLE"; exit 1; }
+    CUMPLE=$(printf '%02d-%02d' "$d" "$m")
+fi
 
 mkdir -p perfiles
 ARCH="perfiles/$USUARIO.conf"
@@ -48,6 +58,10 @@ voz=es-419
 voz_en=en-us
 # minutos de juegos por día (0 = sin tope). Pintar, Letras, Escribir y Mi clase no cuentan.
 juegos_min=$JUEGOS
+# cada cuántos minutos de uso se pide descansar la vista 20 segundos (0 = nunca)
+pausa_ojos=$PAUSA
+# DD-MM: ese día hay globos, saludo especial y "Cumpleaños feliz"
+cumpleanos=$CUMPLE
 EOF
 
 echo
