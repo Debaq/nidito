@@ -1,5 +1,5 @@
 //! Menú para adultos (Ctrl+Alt+P): pide la clave de adultos y luego volumen, tiempo,
-//! ajustes (juegos, pausa para los ojos, cumpleaños), terminal, reiniciar y apagar.
+//! ajustes (juegos, pausa para los ojos, cumpleaños), terminal, reiniciar, apagar y actualizar.
 
 use crate::apps::{Ev, T};
 use crate::config::Ajustes;
@@ -37,14 +37,14 @@ pub struct Padres {
 const PANEL: R = R::new(212.0, 40.0, 600.0, 500.0);
 
 fn boton(i: usize) -> R {
-    if i == BOTONES.len() - 1 {
-        // "Volver" ocupa toda la última fila
+    if i == BOTONES.len() - 1 && BOTONES.len() % 2 == 1 {
+        // si sobra uno, "Volver" ocupa toda la última fila
         return R::new(PANEL.x + 30.0, PANEL.y + 100.0 + (i / 2) as f32 * 72.0, 540.0, 60.0);
     }
     R::new(PANEL.x + 30.0 + (i % 2) as f32 * 280.0, PANEL.y + 100.0 + (i / 2) as f32 * 72.0, 260.0, 60.0)
 }
 
-const BOTONES: [&str; 9] = ["Volumen −", "Volumen +", "+10 minutos", "Bloquear ahora", "Ajustes", "Terminal", "Reiniciar", "Apagar", "Volver"];
+const BOTONES: [&str; 10] = ["Volumen −", "Volumen +", "+10 minutos", "Bloquear ahora", "Ajustes", "Terminal", "Reiniciar", "Apagar", "Actualizar", "Volver"];
 
 const PAUSAS: [u32; 6] = [0, 10, 15, 20, 30, 45];
 const MESES: [&str; 12] = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -159,6 +159,8 @@ impl Padres {
                                 5 => return RP::Accion(Accion::Salir(20)),
                                 6 => return RP::Accion(Accion::Reiniciar),
                                 7 => return RP::Accion(Accion::Apagar),
+                                // nidito-sesion abre nidito-actualizar (pendrive) en una terminal
+                                8 => return RP::Accion(Accion::Salir(21)),
                                 _ => return RP::Cerrar,
                             }
                         }
@@ -241,7 +243,8 @@ impl Padres {
                 if !self.volumen.is_empty() {
                     l.texto_c(&format!("Volumen: {}", self.volumen), p.cx(), p.y + 80.0, 22.0, GRIS);
                 }
-                let colores = [AZUL, AZUL, VERDE, MORADO, rgb(40, 150, 140), rgb(90, 100, 120), NARANJO, ROJO, rgb(120, 130, 150)];
+                l.texto_c(&format!("Nidito versión {}", crate::VERSION), p.cx(), p.y + p.h + 22.0, 17.0, rgb(225, 228, 240));
+                let colores = [AZUL, AZUL, VERDE, MORADO, rgb(40, 150, 140), rgb(90, 100, 120), NARANJO, ROJO, rgb(60, 120, 200), rgb(120, 130, 150)];
                 for (i, t) in BOTONES.iter().enumerate() {
                     let r = boton(i);
                     let c = colores[i];

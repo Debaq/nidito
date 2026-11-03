@@ -11,8 +11,13 @@ if [ ! -f "$HOME/.config/nidito/volumen-listo2" ]; then
 fi
 while true; do
     /usr/local/bin/nidito
-    if [ $? -eq 20 ]; then
+    codigo=$?
+    if [ $codigo -eq 20 ]; then
         xterm -fa "DejaVu Sans Mono" -fs 13 -maximized -title "Terminal - escribe exit para volver a Nidito"
+    elif [ $codigo -eq 21 ]; then
+        # Menú de adultos → Actualizar: pide la clave de adultos (= root) y actualiza desde el pendrive.
+        xterm -fa "DejaVu Sans Mono" -fs 13 -maximized -title "Actualizar Nidito" -e sh -c \
+            'echo; echo "  Escribe la clave de adultos (no se ve mientras escribes) y Enter:"; su -c /usr/local/bin/nidito-actualizar; echo; printf "  Presiona Enter para volver a Nidito... "; read _'
     fi
     sleep 1
 done

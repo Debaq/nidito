@@ -20,4 +20,5 @@ file_permissions=(
   ["/usr/local/bin/nidito-sesion"]="0:0:755"
   ["/usr/local/bin/nidito-instalar"]="0:0:755"
   ["/usr/local/bin/nidito-clave"]="0:0:755"
+  ["/usr/local/bin/nidito-actualizar"]="0:0:755"
 )

@@ -1,0 +1,126 @@
+#!/bin/bash
+# Actualiza Nidito desde un pendrive, sin reinstalar. Usar como root: su -c nidito-actualizar
+# (o desde el menú de adultos → "Actualizar", que lo abre en una terminal).
+#
+# Busca en los pendrives una carpeta "nidito-actualizacion" (la crea ./preparar.sh --actualizacion)
+# con el programa nuevo y, si vienen, las voces y los scripts del sistema. No toca la clave,
+# la configuración ni los dibujos. El programa anterior queda en /usr/local/bin/nidito.anterior.
+#
+# Primera vez en un equipo instalado sin este script: menú de adultos → Terminal →
+#   su        (clave de adultos)
+#   mkdir -p /run/u && mount /dev/sdb1 /run/u     (revisa la letra con lsblk)
+#   bash /run/u/nidito-actualizacion/bin/nidito-actualizar
+set -u
+export LANG=C.UTF-8
+ROJO=$'\e[1;31m'; VERDE=$'\e[1;32m'; AMARILLO=$'\e[1;33m'; NORMAL=$'\e[0m'
+BIN=/usr/local/bin
+VOCES=/usr/share/nidito/voces
+MONTAJE=/run/nidito-usb
+MONTE_YO=""
+
+[ "$EUID" -eq 0 ] || { echo "Ejecuta como root:  su -c nidito-actualizar"; exit 1; }
+
+limpiar() { [ -n "$MONTE_YO" ] && umount "$MONTAJE" 2>/dev/null; }
+trap limpiar EXIT
+fallar() { echo; echo "  ${ROJO}$*${NORMAL}"; echo "  No se cambió nada."; exit 1; }
+version() { "$1" --version 2>/dev/null | head -1; }
+
+echo
+echo "  ${AMARILLO}==== Actualizar Nidito ====${NORMAL}"
+echo
+
+# 1) ¿Se ejecutó directamente desde la carpeta del pendrive?
+ORIGEN=""
+aqui=$(cd "$(dirname "$(readlink -f "$0")")/.." 2>/dev/null && pwd)
+if [ -n "$aqui" ] && [ "$aqui" != /usr/local ] && [ -f "$aqui/nidito" ]; then
+    ORIGEN=$aqui
+fi
+
+# 2) Si no, revisar cada partición (menos la del sistema): montadas o montándolas solo lectura.
+if [ -z "$ORIGEN" ]; then
+    raiz=$(findmnt -no SOURCE / 2>/dev/null)
+    disco_raiz=$(lsblk -npo PKNAME "$raiz" 2>/dev/null | head -1)
+    mkdir -p "$MONTAJE"
+    while read -r dev tipo pk; do
+        [ "$tipo" = part ] || [ "$tipo" = disk ] || continue
+        [ "$dev" = "$raiz" ] && continue
+        [ -n "$disco_raiz" ] && { [ "${pk:-}" = "$disco_raiz" ] || [ "$dev" = "$disco_raiz" ]; } && continue
+        punto=$(findmnt -no TARGET "$dev" 2>/dev/null | head -1)
+        if [ -n "$punto" ]; then
+            [ -f "$punto/nidito-actualizacion/nidito" ] && { ORIGEN=$punto/nidito-actualizacion; break; }
+            continue
+        fi
+        mount -o ro "$dev" "$MONTAJE" 2>/dev/null || continue
+        if [ -f "$MONTAJE/nidito-actualizacion/nidito" ]; then
+            ORIGEN=$MONTAJE/nidito-actualizacion; MONTE_YO=1; break
+        fi
+        umount "$MONTAJE" 2>/dev/null
+    done < <(lsblk -lnpo NAME,TYPE,PKNAME -e 7,11)
+fi
+
+if [ -z "$ORIGEN" ]; then
+    echo "  ${ROJO}No encontré la carpeta 'nidito-actualizacion' en ningún pendrive.${NORMAL}"
+    echo "  Conecta el pendrive (con la carpeta en la raíz) y vuelve a intentar."
+    if [ -x "$BIN/nidito.anterior" ]; then
+        echo
+        echo "  Hay una versión anterior guardada ($(version "$BIN/nidito.anterior"))."
+        read -rp "  ¿Volver a esa versión? (escribe 'si' o 'no'): " r
+        if [[ "${r,,}" == s* ]]; then
+            cp -a "$BIN/nidito" "$BIN/nidito.tmp" && \
+            mv -f "$BIN/nidito.anterior" "$BIN/nidito" && mv -f "$BIN/nidito.tmp" "$BIN/nidito.anterior" \
+                && echo "  ${VERDE}Listo: se volvió a la versión anterior.${NORMAL}"
+        fi
+    fi
+    exit 1
+fi
+
+NUEVO=$ORIGEN/nidito
+echo "  Pendrive: $ORIGEN"
+echo "  Versión instalada: $(version "$BIN/nidito")"
+# Probar que el programa nuevo arranca en este computador antes de tocar nada.
+cp "$NUEVO" /tmp/nidito-prueba && chmod 755 /tmp/nidito-prueba || fallar "no pude leer el programa del pendrive."
+VNUEVA=$(version /tmp/nidito-prueba)
+[ -n "$VNUEVA" ] || { rm -f /tmp/nidito-prueba; fallar "el programa del pendrive no funciona en este computador."; }
+echo "  Versión nueva:     $VNUEVA"
+echo
+read -rp "  ¿Actualizar? (escribe 'si' o 'no'): " r
+[[ "${r,,}" == s* ]] || { rm -f /tmp/nidito-prueba; echo "  No se cambió nada."; exit 0; }
+
+# Programa: se copia al lado y se reemplaza con mv (funciona aunque Nidito esté abierto).
+# Si es el mismo, no se toca (así no se pierde la versión anterior guardada).
+if cmp -s /tmp/nidito-prueba "$BIN/nidito"; then
+    echo "  ${VERDE}>>${NORMAL} El programa ya estaba al día."
+else
+    cp -a "$BIN/nidito" "$BIN/nidito.anterior" 2>/dev/null
+    install -m755 /tmp/nidito-prueba "$BIN/nidito.nuevo" && mv -f "$BIN/nidito.nuevo" "$BIN/nidito" \
+        || fallar "no se pudo copiar el programa."
+    echo "  ${VERDE}>>${NORMAL} Programa actualizado."
+fi
+rm -f /tmp/nidito-prueba
+
+# Voces: solo se agregan o reemplazan las que cambiaron.
+if compgen -G "$ORIGEN/voces/*.ogg" >/dev/null; then
+    mkdir -p "$VOCES"
+    n=0
+    for f in "$ORIGEN"/voces/*.ogg; do
+        d=$VOCES/$(basename "$f")
+        cmp -s "$f" "$d" && continue
+        cp "$f" "$d.tmp" && mv -f "$d.tmp" "$d" && n=$((n + 1))
+    done
+    echo "  ${VERDE}>>${NORMAL} Voces: $n nuevas o cambiadas."
+fi
+
+# Scripts del sistema (sesión, clave, este mismo actualizador).
+if [ -d "$ORIGEN/bin" ]; then
+    for f in "$ORIGEN"/bin/nidito-*; do
+        [ -f "$f" ] || continue
+        d=$BIN/$(basename "$f")
+        cmp -s "$f" "$d" && continue
+        install -m755 "$f" "$d.nuevo" && mv -f "$d.nuevo" "$d" && echo "  ${VERDE}>>${NORMAL} $(basename "$f") actualizado."
+    done
+fi
+
+sync
+echo
+echo "  ${VERDE}Listo. Nidito se abre con la versión nueva al volver.${NORMAL}"
+echo "  (Si algo falla: vuelve a ejecutar esto sin pendrive para recuperar la versión anterior.)"

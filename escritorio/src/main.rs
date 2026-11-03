@@ -29,6 +29,8 @@ use winit::window::{Fullscreen, Window, WindowId};
 
 pub const W: u32 = 1024;
 pub const H: u32 = 600;
+/// Versión + fecha de compilación (la pone build.rs): se ve en el menú de adultos y en `--version`.
+pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), " (", env!("NIDITO_COMPILADO"), ")");
 
 struct Vent {
     sup: softbuffer::Surface<Rc<Window>, Rc<Window>>,
@@ -308,7 +310,7 @@ fn main() {
             return;
         }
         Some("--version") => {
-            println!("nidito {}", env!("CARGO_PKG_VERSION"));
+            println!("nidito {VERSION}");
             return;
         }
         _ => {}
