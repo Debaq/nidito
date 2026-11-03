@@ -35,7 +35,7 @@ pub struct Info {
 }
 
 pub fn lista() -> Vec<Info> {
-    vec![
+    let mut v = vec![
         Info { titulo: "Pintar", en: "Paint", color: rgb(232, 74, 95), ic: 0, juego: false, crear: apps::pintar::Pintar::nuevo },
         Info { titulo: "Letras", en: "Letters", color: rgb(66, 135, 245), ic: 1, juego: false, crear: apps::letras::Letras::nuevo },
         Info { titulo: "Escribir", en: "Write", color: rgb(40, 110, 200), ic: 10, juego: false, crear: apps::escribir::Escribir::nuevo },
@@ -46,8 +46,14 @@ pub fn lista() -> Vec<Info> {
         Info { titulo: "Memorice", en: "Memory", color: rgb(240, 180, 30), ic: 6, juego: true, crear: apps::memorice::Memorice::nuevo },
         Info { titulo: "Globos", en: "Balloons", color: rgb(20, 180, 190), ic: 7, juego: true, crear: apps::globos::Globos::nuevo },
         Info { titulo: "Teclas", en: "Keys", color: rgb(150, 90, 220), ic: 8, juego: true, crear: apps::teclas::Teclas::nuevo },
+        Info { titulo: "Enciclopedia", en: "Encyclopedia", color: rgb(60, 150, 90), ic: 11, juego: false, crear: apps::enciclopedia::Enciclopedia::nuevo },
         Info { titulo: "Mis dibujos", en: "My drawings", color: rgb(110, 120, 140), ic: 9, juego: false, crear: apps::galeria::Galeria::nuevo },
-    ]
+    ];
+    // La cámara solo aparece si hay una conectada.
+    if apps::camara::hay_camara() {
+        v.push(Info { titulo: "Cámara", en: "Camera", color: rgb(70, 80, 105), ic: 12, juego: false, crear: apps::camara::Camara::nuevo });
+    }
+    v
 }
 
 /// Ícono de cada app (dentro de un cuadrado de lado s centrado en x, y).
@@ -117,6 +123,29 @@ pub fn icono(l: &mut Lienzo, i: usize, x: f32, y: f32, s: f32, color: C) {
                 for c in 0..5 {
                     l.rect(x - 31.0 * u + c as f32 * 13.0 * u, y - 13.0 * u + f as f32 * 11.0 * u, 10.0 * u, 8.0 * u, rgb(190, 180, 210));
                 }
+            }
+        }
+        12 => {
+            // cámara de fotos
+            l.rrect(x - 36.0 * u, y - 20.0 * u, 72.0 * u, 48.0 * u, 9.0 * u, rgb(235, 238, 245));
+            l.rrect(x - 14.0 * u, y - 30.0 * u, 28.0 * u, 14.0 * u, 4.0 * u, rgb(235, 238, 245));
+            l.circulo(x, y + 4.0 * u, 17.0 * u, TINTA);
+            l.circulo(x, y + 4.0 * u, 11.0 * u, rgb(90, 140, 220));
+            l.circulo(x - 4.0 * u, y, 3.5 * u, alfa(BLANCO, 0.8));
+            l.circulo(x + 26.0 * u, y - 12.0 * u, 4.0 * u, ROJO);
+        }
+        11 => {
+            // libro abierto con una huella
+            l.poligono(&[(x - 38.0 * u, y - 22.0 * u), (x - 2.0 * u, y - 16.0 * u), (x - 2.0 * u, y + 30.0 * u), (x - 38.0 * u, y + 24.0 * u)], BLANCO);
+            l.poligono(&[(x + 38.0 * u, y - 22.0 * u), (x + 2.0 * u, y - 16.0 * u), (x + 2.0 * u, y + 30.0 * u), (x + 38.0 * u, y + 24.0 * u)], rgb(235, 240, 235));
+            let c = oscurecer(color, 0.25);
+            l.ovalo(x + 20.0 * u, y + 10.0 * u, 8.0 * u, 7.0 * u, c);
+            for (dx, dy) in [(-8.0, -2.0), (-2.0, -9.0), (7.0, -9.0), (13.0, -2.0)] {
+                l.circulo(x + 20.0 * u + dx * u * 0.9, y + 10.0 * u + dy * u, 3.2 * u, c);
+            }
+            for k in 0..4 {
+                let yy = y - 10.0 * u + k as f32 * 9.0 * u;
+                l.linea(x - 32.0 * u, yy, x - 9.0 * u, yy + 1.5 * u, 2.5 * u, rgb(170, 190, 175));
             }
         }
         _ => {}
@@ -202,7 +231,7 @@ const IDIOMA: R = R::new(W as f32 - 236.0, BARRA_Y + 5.0, 140.0, BARRA_H - 10.0)
 const MENU: R = R::new(6.0, BARRA_Y - 496.0, 360.0, 490.0);
 
 pub fn menu_item(i: usize) -> R {
-    R::new(MENU.x + 12.0 + (i % 2) as f32 * 170.0, MENU.y + 80.0 + (i / 2) as f32 * 56.0, 162.0, 52.0)
+    R::new(MENU.x + 12.0 + (i % 2) as f32 * 170.0, MENU.y + 76.0 + (i / 2) as f32 * 50.0, 162.0, 46.0)
 }
 pub const MENU_APAGAR: R = R::new(MENU.x + 12.0, MENU.y + MENU.h - 52.0, MENU.w - 24.0, 42.0);
 const DIALOGO: R = R::new(272.0, 170.0, 480.0, 230.0);

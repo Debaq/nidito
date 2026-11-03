@@ -155,7 +155,7 @@ impl Letras {
         let s: String = self.texto.iter().map(|x| x.0).collect();
         if let Some(p) = s.split_whitespace().last() {
             if p.chars().count() > 1 {
-                cx.decir(&p.to_lowercase());
+                crate::palabras::leer(cx, &p.to_lowercase());
             }
         }
     }
@@ -184,7 +184,7 @@ impl App for Letras {
                         Modo::Libre => {
                             let s: String = self.texto.iter().map(|x| x.0).collect::<String>().to_lowercase();
                             if !s.trim().is_empty() {
-                                cx.decir(&s);
+                                crate::palabras::leer(cx, &s);
                             }
                         }
                         Modo::Copiar => self.anunciar(cx),

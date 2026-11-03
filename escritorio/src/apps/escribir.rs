@@ -406,7 +406,7 @@ impl App for Escribir {
                         Bot::Leer => {
                             let t = self.texto_plano().to_lowercase();
                             if !t.trim().is_empty() {
-                                cx.decir(&t);
+                                crate::palabras::leer(cx, &t);
                             }
                         }
                     }

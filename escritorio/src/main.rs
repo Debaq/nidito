@@ -3,6 +3,7 @@
 mod apps;
 mod captura;
 mod config;
+mod palabras;
 mod cx;
 mod dibujos;
 mod efectos;

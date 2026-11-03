@@ -1,8 +1,10 @@
 //! Apps de Nidito. Cada app dibuja en su propio pixmap de AW x AH (coordenadas locales).
 
+pub mod camara;
 pub mod clase;
 pub mod cocina;
 pub mod contar;
+pub mod enciclopedia;
 pub mod english;
 pub mod escribir;
 pub mod galeria;
@@ -157,7 +159,19 @@ impl Frases {
 }
 
 /// Todas las frases de Nidito (para generar el paquete de voces).
+/// Incluye también la versión sin nombre de las frases personalizadas (saludo, fin de clase…),
+/// que es la que se usa si el perfil no tiene nombre.
 pub fn catalogo(nombre: &str, apodo: &str) -> Vec<crate::voz::Parte> {
+    let mut todo = catalogo_de(nombre, apodo);
+    if !nombre.trim().is_empty() || !apodo.trim().is_empty() {
+        todo.extend(catalogo_de("", ""));
+        let mut vistos = std::collections::HashSet::new();
+        todo.retain(|p| vistos.insert(p.clone()));
+    }
+    todo
+}
+
+fn catalogo_de(nombre: &str, apodo: &str) -> Vec<crate::voz::Parte> {
     use crate::dibujos::Obj;
     let mut f = Frases::default();
     for n in 0..=20 {
@@ -190,6 +204,9 @@ pub fn catalogo(nombre: &str, apodo: &str) -> Vec<crate::voz::Parte> {
     english::frases(&mut f);
     galeria::frases(&mut f);
     escribir::frases(&mut f);
+    enciclopedia::frases(&mut f);
+    camara::frases(&mut f);
+    crate::palabras::frases(&mut f, nombre, apodo);
     let mut vistos = std::collections::HashSet::new();
     f.0.retain(|p| vistos.insert(p.clone()));
     f.0

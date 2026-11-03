@@ -11,7 +11,9 @@ tiny-skia = "0.11"
 fontdue = "0.9"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 sha2 = "0.10"
+zune-jpeg = { version = "0.4", default-features = false }
 rodio = { version = "0.20", default-features = false, features = ["wav", "vorbis"] }
+v4l = { version = "0.14.0", default-features = false, features = ["v4l2"] }
 
 [profile.release]
 opt-level = 3

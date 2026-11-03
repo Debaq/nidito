@@ -132,7 +132,7 @@ pub fn ejecutar(dir: &str) {
 
     let cerrar = |esc: &mut Escritorio, cx: &mut Cx| clic(esc, cx, 1024.0 - 6.0 - 50.0 + 4.0 + 23.0, 19.0);
 
-    let apps: [(&str, &str); 9] = [
+    let apps: [(&str, &str); 10] = [
         ("Escribir", "05b-escribir"),
         ("Contar", "06-contar"),
         ("Mi clase", "07-clase"),
@@ -142,6 +142,7 @@ pub fn ejecutar(dir: &str) {
         ("Globos", "11-globos"),
         ("Teclas", "12-teclas"),
         ("Mis dibujos", "13-mis-dibujos"),
+        ("Enciclopedia", "20-enciclopedia"),
     ];
     for (titulo, nombre) in apps {
         abrir_menu(&mut esc, &mut cx, titulo);
@@ -203,6 +204,35 @@ pub fn ejecutar(dir: &str) {
                 cerrar(&mut esc, &mut cx);
                 continue;
             }
+            "Enciclopedia" => {
+                foto(&mut esc, &mut cx, &mut l, dir, nombre);
+                clic(&mut esc, &mut cx, ox + 335.0, oy + 270.0);
+                paso(&mut esc, &mut cx, 0.2);
+                foto(&mut esc, &mut cx, &mut l, dir, "20a-enciclopedia-animales");
+                clic(&mut esc, &mut cx, ox + 110.0, oy + 124.0);
+                paso(&mut esc, &mut cx, 0.3);
+                foto(&mut esc, &mut cx, &mut l, dir, "20b-enciclopedia-perro");
+                for _ in 0..17 {
+                    ev(&mut esc, &mut cx, Ev::Tecla(T::Der));
+                }
+                paso(&mut esc, &mut cx, 0.3);
+                foto(&mut esc, &mut cx, &mut l, dir, "20c-enciclopedia-tortuga");
+                ev(&mut esc, &mut cx, Ev::Tecla(T::Escape));
+                ev(&mut esc, &mut cx, Ev::Tecla(T::Escape));
+                clic(&mut esc, &mut cx, ox + 665.0, oy + 270.0);
+                paso(&mut esc, &mut cx, 0.2);
+                foto(&mut esc, &mut cx, &mut l, dir, "20d-enciclopedia-cuerpo");
+                clic(&mut esc, &mut cx, ox + 110.0 + 195.0, oy + 124.0);
+                paso(&mut esc, &mut cx, 0.3);
+                foto(&mut esc, &mut cx, &mut l, dir, "20e-enciclopedia-corazon");
+                for _ in 0..2 {
+                    ev(&mut esc, &mut cx, Ev::Tecla(T::Izq));
+                }
+                paso(&mut esc, &mut cx, 0.3);
+                foto(&mut esc, &mut cx, &mut l, dir, "20f-enciclopedia-pies");
+                cerrar(&mut esc, &mut cx);
+                continue;
+            }
             "English" => {
                 clic(&mut esc, &mut cx, ox + 150.0 + 110.0, oy + 88.0 + 98.0);
                 paso(&mut esc, &mut cx, 0.3);
@@ -229,6 +259,24 @@ pub fn ejecutar(dir: &str) {
         foto(&mut esc, &mut cx, &mut l, dir, nombre);
         cerrar(&mut esc, &mut cx);
     }
+    // cámara (solo si hay una): espera cuadros reales, cuenta 3-2-1 y saca la foto
+    if crate::apps::camara::hay_camara() {
+        abrir_menu(&mut esc, &mut cx, "Cámara");
+        for _ in 0..30 {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            paso(&mut esc, &mut cx, 0.1);
+        }
+        foto(&mut esc, &mut cx, &mut l, dir, "21-camara");
+        ev(&mut esc, &mut cx, Ev::Tecla(T::Espacio));
+        paso(&mut esc, &mut cx, 1.2);
+        foto(&mut esc, &mut cx, &mut l, dir, "21b-camara-cuenta");
+        for _ in 0..20 {
+            paso(&mut esc, &mut cx, 0.1);
+        }
+        foto(&mut esc, &mut cx, &mut l, dir, "21c-camara-foto");
+        cerrar(&mut esc, &mut cx);
+    }
+
 
     // diálogo de apagar
     clic(&mut esc, &mut cx, 60.0, 580.0);

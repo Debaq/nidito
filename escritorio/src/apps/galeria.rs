@@ -23,8 +23,8 @@ impl Galeria {
         let mut archivos: Vec<PathBuf> = std::fs::read_dir(ruta_datos("Dibujos"))
             .map(|rd| rd.filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().is_some_and(|x| x == "png")).collect())
             .unwrap_or_default();
-        archivos.sort();
-        archivos.reverse();
+        // más nuevos primero (dibujos de Pintar y fotos de la Cámara, mezclados por fecha)
+        archivos.sort_by_key(|p| std::cmp::Reverse(std::fs::metadata(p).and_then(|m| m.modified()).ok()));
         if archivos.is_empty() {
             cx.decir_bil("Todavía no hay dibujos. ¡Pinta uno!", "No drawings yet. Paint one!");
         }

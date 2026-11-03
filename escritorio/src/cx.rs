@@ -61,6 +61,7 @@ pub enum Son {
 
 pub struct Audio {
     voz_sink: Option<Sink>,
+    clip_sink: Option<Sink>,
     handle: Option<OutputStreamHandle>,
     _stream: Option<OutputStream>,
     sonidos: Sonidos,
@@ -80,7 +81,7 @@ impl Audio {
         } else {
             (None, None)
         };
-        Audio { voz_sink: None, handle, _stream: stream, sonidos: Sonidos::generar(), voz: Voz::nueva(activo, voz_es, voz_en) }
+        Audio { voz_sink: None, clip_sink: None, handle, _stream: stream, sonidos: Sonidos::generar(), voz: Voz::nueva(activo, voz_es, voz_en) }
     }
 
     pub fn sonar(&self, s: Son) {
@@ -108,6 +109,18 @@ impl Audio {
     pub fn callar(&mut self) {
         self.voz.callar();
         self.voz_sink = None;
+        self.clip_sink = None;
+    }
+
+    /// Reproduce un audio (ogg/wav) embebido, p. ej. el sonido de un animal. Calla la voz.
+    pub fn reproducir(&mut self, bytes: &'static [u8]) {
+        self.callar();
+        let Some(h) = &self.handle else { return };
+        let Ok(sink) = Sink::try_new(h) else { return };
+        if let Ok(dec) = Decoder::new(Cursor::new(bytes)) {
+            sink.append(dec);
+            self.clip_sink = Some(sink);
+        }
     }
 
     pub fn actualizar(&mut self) {
@@ -178,6 +191,10 @@ impl Cx {
     /// Siempre en español.
     pub fn decir(&mut self, t: &str) {
         self.hablar(vec![(L::Es, t.to_string())]);
+    }
+    /// Varias partes, siempre en español.
+    pub fn decir_es_v<A: AsRef<str>>(&mut self, partes: &[A]) {
+        self.hablar(partes.iter().map(|t| (L::Es, t.as_ref().to_string())).collect());
     }
     /// Siempre en inglés.
     pub fn decir_en(&mut self, t: &str) {

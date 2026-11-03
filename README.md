@@ -7,7 +7,9 @@ Nidito es un escritorio propio escrito en Rust (sin gestor de ventanas, todo dib
 ## Qué trae
 
 - **Escritorio con ventanas reales**, barra con botón de Inicio, hora e idioma (español, inglés o ambos).
-- **11 apps**: Pintar, Letras, Escribir (tipo WordPad), Contar, Mi clase, Cocina, English, Memorice, Globos, Teclas y Mis dibujos.
+- **13 apps**: Pintar, Letras, Escribir (tipo WordPad), Contar, Mi clase, Cocina, English, Memorice, Globos, Teclas, Mis dibujos, Enciclopedia y Cámara.
+- **Cámara**: se ve en espejo, cuenta 3-2-1 y saca la foto, que queda en "Mis dibujos". Solo aparece si el equipo tiene cámara (V4L2, YUYV o MJPG).
+- **Enciclopedia**: temas con fotos reales y textos cortos que lee la voz, todo en una pantalla y sin deslizar. Trae dos temas: **Animales** (20, con fotos reales y el sonido de 15 de ellos, incluye fauna chilena: pudú, cóndor, pingüino de Humboldt) y **Cuerpo humano** (15 partes, con ilustraciones amables en vez de fotos).
 - **Voz**: unas 820 frases pregrabadas con voces neuronales (edge-tts), procesadas para que se escuchen bien en los parlantes chicos de un netbook. Si falta alguna frase se usa espeak-ng.
 - **Control de tiempo**: al encender, un adulto elige la duración de la sesión (20/30/45/60 min o sin límite). Solo cuenta el tiempo activo, y los juegos tienen un tope diario configurable (20 min por defecto). Pintar, Letras, Escribir y Mi clase no cuentan para ese tope.
 - **Menú de adultos** (`Ctrl+Alt+P`, se entra resolviendo una multiplicación): volumen, +10 minutos, bloquear, terminal, reiniciar y apagar.
@@ -28,7 +30,7 @@ Cada perfil queda en `perfiles/<usuario>.conf`. Esa carpeta **no se sube a git**
 
 ## Construir la ISO
 
-Requisitos (en Arch Linux): `archiso`, `rust`/`cargo`, `ffmpeg`, `uv` (para instalar edge-tts) y conexión a internet para generar las voces.
+Requisitos (en Arch Linux): `archiso`, `rust`/`cargo`, `clang` (para compilar el acceso a la cámara), `ffmpeg`, `uv` (para instalar edge-tts) y conexión a internet para generar las voces.
 
 ```bash
 ./preparar.sh [usuario]      # compila, genera voces faltantes y arma build/perfil
@@ -82,6 +84,7 @@ amixer sset Master 100% unmute
 | `escritorio/` | El escritorio y las apps (Rust: winit + softbuffer + tiny-skia + rodio) |
 | `iso/perfil/` | Perfil de archiso: paquetes, servicios, sesión, instalador (`nidito-instalar`) |
 | `iso/nidito.conf` | Configuración genérica (se instala en `/etc/nidito.conf`) |
+| `enciclopedia/` | Fotos (`bajar_fotos.sh` + `animales.tsv`), sonidos (`bajar_sonidos.sh` + `sonidos.tsv`) e ilustraciones (`bajar_dibujos.sh` + `cuerpo.tsv`) de la enciclopedia, con sus créditos |
 | `voces/` | Generador de voces (`generar.sh`) y filtro de audio (`filtro.txt`) |
 | `personalizar.sh` | Crea el perfil de un niño en `perfiles/` |
 | `preparar.sh`, `construir_iso.sh` | Construcción de la ISO |
@@ -89,4 +92,4 @@ amixer sset Master 100% unmute
 
 ## Licencia
 
-Código bajo licencia [MIT](LICENSE). La fuente Andika se distribuye bajo la [SIL Open Font License](escritorio/recursos/OFL.txt). Las voces no se incluyen en el repositorio: se generan al construir con edge-tts.
+Código bajo licencia [MIT](LICENSE). La fuente Andika se distribuye bajo la [SIL Open Font License](escritorio/recursos/OFL.txt). Las fotos y sonidos de la enciclopedia son de Wikimedia Commons y las ilustraciones de Twemoji (CC BY 4.0); autor y licencia de cada uno en [enciclopedia/CREDITOS.md](enciclopedia/CREDITOS.md). Las voces no se incluyen en el repositorio: se generan al construir con edge-tts.
