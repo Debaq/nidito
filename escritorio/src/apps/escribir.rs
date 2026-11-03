@@ -4,7 +4,6 @@
 use super::*;
 use crate::cx::Son;
 use crate::dibujos::{self, Obj, TODOS};
-use std::path::PathBuf;
 
 #[derive(Clone, Copy, PartialEq)]
 enum Cont {
@@ -64,9 +63,7 @@ fn sticker_r(i: usize) -> R {
     R::new(870.0 + (i % 2) as f32 * 62.0, 84.0 + (i / 2) as f32 * 84.0, 56.0, 76.0)
 }
 
-fn dir_docs() -> PathBuf {
-    ruta_datos("Documentos")
-}
+const DIR_DOCS: &str = "Documentos";
 
 pub fn frases(f: &mut Frases) {
     f.bil("Escribe lo que quieras.", "Write anything you want.");
@@ -97,12 +94,12 @@ pub struct Escribir {
     tam: usize,
     color: usize,
     centro: bool,
-    archivo: Option<PathBuf>,
+    archivo: Option<String>,
     cambiado: bool,
     scroll: f32,
     lugares: Vec<Lugar>,
     fin: Lugar,
-    abrir: Option<Vec<(PathBuf, String)>>,
+    abrir: Option<Vec<(String, String)>>,
     aviso: f32,
 }
 
@@ -147,14 +144,7 @@ impl Escribir {
         if self.doc.is_empty() || !self.cambiado {
             return false;
         }
-        let dir = dir_docs();
-        if std::fs::create_dir_all(&dir).is_err() {
-            return false;
-        }
-        let ruta = self.archivo.clone().unwrap_or_else(|| {
-            let seg = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-            dir.join(format!("documento-{seg}.nid"))
-        });
+        let ruta = self.archivo.clone().unwrap_or_else(|| format!("{DIR_DOCS}/documento-{}.nid", crate::almacen::segundos()));
         let mut s = String::from("NIDITO-DOC 1\n");
         for p in &self.doc {
             let (k, v) = match p.c {
@@ -164,7 +154,7 @@ impl Escribir {
             };
             s.push_str(&format!("{k} {v} {} {} {} {} {}\n", p.tam, p.color[0], p.color[1], p.color[2], p.centro as u8));
         }
-        if std::fs::write(&ruta, s).is_ok() {
+        if crate::almacen::escribir(&ruta, s.as_bytes()) {
             self.archivo = Some(ruta);
             self.cambiado = false;
             true
@@ -173,8 +163,8 @@ impl Escribir {
         }
     }
 
-    fn cargar(&mut self, ruta: &PathBuf) {
-        let Ok(txt) = std::fs::read_to_string(ruta) else { return };
+    fn cargar(&mut self, ruta: &str) {
+        let Some(txt) = crate::almacen::leer_texto(ruta) else { return };
         let mut doc = vec![];
         for linea in txt.lines().skip(1) {
             let p: Vec<&str> = linea.split_whitespace().collect();
@@ -194,15 +184,13 @@ impl Escribir {
         }
         self.doc = doc;
         self.cursor = self.doc.len();
-        self.archivo = Some(ruta.clone());
+        self.archivo = Some(ruta.to_string());
         self.cambiado = false;
         self.scroll = 0.0;
     }
 
-    fn lista_docs() -> Vec<(PathBuf, String)> {
-        let mut v: Vec<PathBuf> = std::fs::read_dir(dir_docs())
-            .map(|rd| rd.filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().is_some_and(|x| x == "nid")).collect())
-            .unwrap_or_default();
+    fn lista_docs() -> Vec<(String, String)> {
+        let mut v: Vec<String> = crate::almacen::listar(DIR_DOCS, "nid").into_iter().map(|(r, _)| r).collect();
         v.sort();
         v.reverse();
         v.truncate(12);

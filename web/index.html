@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nidito</title>
+<link rel="icon" href="data:,">
+<style>
+  html, body { margin: 0; height: 100%; background: #1b2033; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; font-family: system-ui, sans-serif; }
+  /* 1024x600 escalado para caber; con tope para no dibujar de más en pantallas muy grandes */
+  #nidito {
+    display: block;
+    width: min(100vw, calc(100vh * 1024 / 600), 1366px);
+    aspect-ratio: 1024 / 600;
+    outline: none;
+    touch-action: none;
+  }
+  #inicio {
+    position: fixed; inset: 0; display: flex; flex-direction: column; gap: 18px;
+    align-items: center; justify-content: center; background: linear-gradient(#6ebef0, #c8ebff);
+    cursor: pointer; user-select: none;
+  }
+  #inicio h1 { margin: 0; font-size: clamp(40px, 9vw, 88px); color: #fff; text-shadow: 0 4px 0 #2b2d42; }
+  #inicio button {
+    font: inherit; font-size: clamp(22px, 4vw, 34px); font-weight: 700; color: #fff; background: #2eaa60;
+    border: 0; border-radius: 999px; padding: 16px 44px; box-shadow: 0 6px 0 #1d7a43; cursor: pointer;
+  }
+  #inicio p { margin: 0; color: #2b2d42; font-size: 16px; opacity: .8; text-align: center; padding: 0 16px; }
+  #error { color: #fff; padding: 24px; text-align: center; display: none; }
+</style>
+</head>
+<body>
+<canvas id="nidito" tabindex="0"></canvas>
+<div id="inicio">
+  <h1>Nidito</h1>
+  <button id="empezar">Tocar para empezar</button>
+  <p>Mejor con audífonos o parlantes. Los dibujos se guardan en este navegador.</p>
+</div>
+<div id="error">No se pudo cargar Nidito en este navegador.</div>
+<script type="module">
+  import init from "./nidito.js";
+  const inicio = document.getElementById("inicio");
+  // los navegadores solo dejan sonar audio después de que la persona toca algo
+  inicio.addEventListener("click", async () => {
+    inicio.style.display = "none";
+    document.getElementById("nidito").focus();
+    try {
+      await init();
+    } catch (e) {
+      // winit sale de init con una excepción a propósito: no es un error
+      if (!String(e).includes("Using exceptions for control flow")) {
+        console.error(e);
+        document.getElementById("error").style.display = "block";
+      }
+    }
+  }, { once: true });
+</script>
+</body>
+</html>

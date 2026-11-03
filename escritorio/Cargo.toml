@@ -13,7 +13,23 @@ chrono = { version = "0.4", default-features = false, features = ["clock"] }
 sha2 = "0.10"
 zune-jpeg = { version = "0.4", default-features = false }
 rodio = { version = "0.20", default-features = false, features = ["wav", "vorbis"] }
+web-time = "1"
+
+# Solo en el computador: cámara (V4L2)
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 v4l = { version = "0.14.0", default-features = false, features = ["v4l2"] }
+hound = "3.5"
+ratatui = "0.29"
+
+# Versión web (WebAssembly). wasm-bindgen fijo: tiene que ser la misma versión que el wasm-bindgen-cli instalado.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "=0.2.128"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlCanvasElement", "Storage", "Response", "Location", "SpeechSynthesis", "SpeechSynthesisUtterance"] }
+cpal = { version = "0.15", features = ["wasm-bindgen"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "wasmbind"] }
+console_error_panic_hook = "0.1"
 
 [profile.release]
 opt-level = 3

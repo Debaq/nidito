@@ -1,0 +1,13 @@
+# Pantalla de carga de Nidito. No se puede poner /etc/plymouth/plymouthd.conf directo en la ISO
+# (es del paquete plymouth y pacman no lo sobrescribe): se escribe al instalar el paquete,
+# antes de que se arme el initramfs (90-mkinitcpio-install.hook).
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = plymouth
+
+[Action]
+Description = Nidito: tema de la pantalla de carga...
+When = PostTransaction
+Exec = /bin/sh -c "printf '[Daemon]\nTheme=nidito\nShowDelay=0\nDeviceTimeout=8\n' > /etc/plymouth/plymouthd.conf"

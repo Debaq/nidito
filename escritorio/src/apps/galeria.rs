@@ -2,11 +2,10 @@
 
 use super::*;
 use crate::cx::Son;
-use std::path::PathBuf;
 use tiny_skia::{FilterQuality, Pixmap, PixmapPaint, Transform};
 
 pub struct Galeria {
-    archivos: Vec<PathBuf>,
+    archivos: Vec<String>,
     i: usize,
     img: Option<Pixmap>,
     cargado: Option<usize>,
@@ -20,11 +19,10 @@ pub fn frases(f: &mut Frases) {
 
 impl Galeria {
     pub fn nuevo(cx: &mut Cx) -> Box<dyn App> {
-        let mut archivos: Vec<PathBuf> = std::fs::read_dir(ruta_datos("Dibujos"))
-            .map(|rd| rd.filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().is_some_and(|x| x == "png")).collect())
-            .unwrap_or_default();
+        let mut lista = crate::almacen::listar("Dibujos", "png");
         // más nuevos primero (dibujos de Pintar y fotos de la Cámara, mezclados por fecha)
-        archivos.sort_by_key(|p| std::cmp::Reverse(std::fs::metadata(p).and_then(|m| m.modified()).ok()));
+        lista.sort_by_key(|(_, t)| std::cmp::Reverse(*t));
+        let archivos: Vec<String> = lista.into_iter().map(|(r, _)| r).collect();
         if archivos.is_empty() {
             cx.decir_bil("Todavía no hay dibujos. ¡Pinta uno!", "No drawings yet. Paint one!");
         }
@@ -67,7 +65,7 @@ impl App for Galeria {
             return;
         }
         if self.cargado != Some(self.i) {
-            self.img = Pixmap::load_png(&self.archivos[self.i]).ok();
+            self.img = crate::almacen::leer(&self.archivos[self.i]).and_then(|b| Pixmap::decode_png(&b).ok());
             self.cargado = Some(self.i);
         }
         if let Some(img) = &self.img {

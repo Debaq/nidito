@@ -1,6 +1,21 @@
 //! Apps de Nidito. Cada app dibuja en su propio pixmap de AW x AH (coordenadas locales).
 
+#[cfg(not(target_arch = "wasm32"))]
 pub mod camara;
+/// En el navegador no hay cámara: la app no aparece.
+#[cfg(target_arch = "wasm32")]
+pub mod camara {
+    pub fn hay_camara() -> bool {
+        false
+    }
+    pub fn frases(_f: &mut super::Frases) {}
+    pub struct Camara;
+    impl Camara {
+        pub fn nuevo(_cx: &mut crate::cx::Cx) -> Box<dyn super::App> {
+            unreachable!("sin cámara en la web")
+        }
+    }
+}
 pub mod clase;
 pub mod cocina;
 pub mod contar;
@@ -265,7 +280,12 @@ pub fn felicitar(l: &mut Lienzo, texto: &str, cx: f32, cy: f32, t: f32) {
     l.texto_c_borde(texto, cx, cy + dy, 76.0, AMARILLO, TINTA, 4.0);
 }
 
+/// Carpeta personal donde se guardan dibujos, documentos y clases. `NIDITO_DATOS` la cambia
+/// (la versión para Linux sin instalar la usa para no mezclarse con los archivos de la persona).
 pub fn ruta_datos(sub: &str) -> std::path::PathBuf {
-    let home = std::env::var_os("HOME").map(std::path::PathBuf::from).unwrap_or_else(|| "/tmp".into());
+    let home = std::env::var_os("NIDITO_DATOS")
+        .or_else(|| std::env::var_os("HOME"))
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| "/tmp".into());
     home.join(sub)
 }

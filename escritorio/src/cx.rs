@@ -166,8 +166,8 @@ pub struct Cx {
 
 impl Cx {
     pub fn nuevo(cfg: &crate::config::Config, audio: bool) -> Cx {
-        let semilla = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
+        let semilla = web_time::SystemTime::now()
+            .duration_since(web_time::UNIX_EPOCH)
             .map(|d| d.as_nanos() as u64)
             .unwrap_or(7);
         Cx {
@@ -176,7 +176,11 @@ impl Cx {
             t: 0.0,
             nombre: cfg.nombre.clone(),
             apodo: cfg.apodo.clone(),
-            idioma: Idioma::Es,
+            idioma: match cfg.idioma.as_str() {
+                "en" => Idioma::En,
+                "ambos" => Idioma::Ambos,
+                _ => Idioma::Es,
+            },
             raton: (-100.0, -100.0),
             rl: (-100.0, -100.0),
             apretado: false,

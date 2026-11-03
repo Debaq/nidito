@@ -4,12 +4,20 @@ build/
 salida/
 *.iso
 
-# Voces generadas (edge-tts): se regeneran con ./preparar.sh y contienen el nombre del niño
+# Voces generadas (piper o edge-tts): se regeneran con ./preparar.sh y contienen el nombre del niño
 voces/.venv/
+voces/cache/
+voces/modelos/
 voces/paquete/
+voces/paquete-publico/
+voces/paquete-publico-m/
+voces/piper-bin/
 voces/originales/
 voces/muestras/
 
 # Datos personales: perfiles de cada niño y notas locales
 perfiles/
 ESTADO.md
+
+# Python
+__pycache__/

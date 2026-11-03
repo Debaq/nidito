@@ -119,10 +119,9 @@ impl Pintar {
         if !self.sucio {
             return;
         }
-        let dir = ruta_datos("Dibujos");
-        let _ = std::fs::create_dir_all(&dir);
-        let seg = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-        let _ = self.hoja.save_png(dir.join(format!("dibujo-{seg}.png")));
+        if let Ok(png) = self.hoja.encode_png() {
+            crate::almacen::escribir(&format!("Dibujos/dibujo-{}.png", crate::almacen::segundos()), &png);
+        }
         self.sucio = false;
     }
 

@@ -292,7 +292,7 @@ fn hoy() -> (u32, u32) {
     (d.day(), d.month())
 }
 
-fn saludo(nombre: &str) -> (String, String) {
+pub fn saludo(nombre: &str) -> (String, String) {
     if nombre.trim().is_empty() {
         ("¡Hola! ¿Qué quieres hacer hoy?".into(), "Hello! What do you want to do today?".into())
     } else {
@@ -732,6 +732,24 @@ impl Escritorio {
     pub fn abrir_ajustes(&mut self, cx: &mut Cx) {
         self.abrir_padres(cx);
         self.padres = self.padres.take().map(Padres::en_ajustes);
+    }
+
+    /// Botón de encendido del computador (Nidito lo recibe porque nidito-sesion bloquea a logind
+    /// mientras está abierto). La 1ª vez pregunta; si lo vuelven a presionar con la pregunta a la vista, apaga.
+    pub fn boton_apagar(&mut self, cx: &mut Cx) -> Option<Accion> {
+        self.sucio = true;
+        let ya_pregunto = matches!(self.dialogo, Some(Dialogo::Apagar));
+        if ya_pregunto || self.tiempo.bloqueado || self.pausa.is_some() {
+            self.cerrar_todo(cx);
+            cx.decir_bil("¡Chao! Hasta pronto.", "Bye bye!");
+            return Some(Accion::Apagar);
+        }
+        self.padres = None;
+        self.menu = false;
+        self.dialogo = Some(Dialogo::Apagar);
+        cx.sonar(Son::Clic);
+        cx.decir_bil("¿Quieres apagar el computador?", "Do you want to turn off the computer?");
+        None
     }
 
     pub fn abrir_padres(&mut self, cx: &mut Cx) {

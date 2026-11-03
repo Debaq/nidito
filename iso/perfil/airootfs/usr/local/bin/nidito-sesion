@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Sesión gráfica de Nidito (sin gestor de ventanas: Nidito ES el escritorio).
 xset s 900 900 2>/dev/null
 xset dpms 1200 1200 1200 2>/dev/null
@@ -9,8 +9,14 @@ if [ ! -f "$HOME/.config/nidito/volumen-listo2" ]; then
     amixer -q sset Master 90% unmute 2>/dev/null
     mkdir -p "$HOME/.config/nidito" && touch "$HOME/.config/nidito/volumen-listo2"
 fi
+# Botón de encendido: mientras Nidito está abierto, logind no apaga solo (Nidito pregunta, guarda y se despide).
+# Si Nidito se cierra o falla, el bloqueo se va con él y el botón vuelve a apagar directo.
+NIDITO=(/usr/local/bin/nidito)
+if systemd-inhibit --what=handle-power-key --mode=block --who=Nidito --why=prueba true 2>/dev/null; then
+    NIDITO=(systemd-inhibit --what=handle-power-key --mode=block --who=Nidito --why="Nidito pregunta antes de apagar" /usr/local/bin/nidito)
+fi
 while true; do
-    /usr/local/bin/nidito
+    "${NIDITO[@]}"
     codigo=$?
     if [ $codigo -eq 20 ]; then
         xterm -fa "DejaVu Sans Mono" -fs 13 -maximized -title "Terminal - escribe exit para volver a Nidito"

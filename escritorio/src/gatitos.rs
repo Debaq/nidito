@@ -9,8 +9,8 @@ use tiny_skia::*;
 pub enum Pelaje {
     /// negro con pechera, hocico y patitas blancas
     Smoking,
-    /// blanco con manchas negras
-    Vaquita,
+    /// gris oscuro casi negro, con rayitas y manchas blancas
+    GrisRayado,
     /// naranjo atigrado
     Naranjo,
     /// naranjo pálido parejo, sin rayas (panza del mismo color)
@@ -111,7 +111,8 @@ fn pelo_base(p: Pelaje) -> C {
         Pelaje::NaranjoPalido => rgb(247, 192, 128),
         Pelaje::CalicoNegra => NEGRO_G,
         Pelaje::Plomo => PLOMO_G,
-        Pelaje::Vaquita | Pelaje::Blanco => BLANCO_G,
+        Pelaje::GrisRayado => rgb(70, 70, 78),
+        Pelaje::Blanco => BLANCO_G,
     }
 }
 
@@ -173,12 +174,27 @@ fn manchas(c: &mut Capa, g: &Gato) {
             c.ovalo(11.0, -4.0, 11.0, 8.0, BLANCO_G, ENCIMA);
             c.poligono(&[(0.0, -88.0), (-13.0, -60.0), (13.0, -60.0)], BLANCO_G, ENCIMA); // hocico
         }
-        Pelaje::Vaquita => {
-            c.circulo(15.0, -96.0, 15.0, NEGRO_G, ENCIMA);
-            c.circulo(-20.0, -100.0, 9.0, NEGRO_G, ENCIMA);
-            c.circulo(-14.0, -28.0, 13.0, NEGRO_G, ENCIMA);
-            c.circulo(20.0, -16.0, 9.0, NEGRO_G, ENCIMA);
-            c.circulo(50.0, -56.0, 12.0, NEGRO_G, ENCIMA); // punta de la cola
+        Pelaje::GrisRayado => {
+            // rayitas casi negras (frente, costados y anillos en la cola)
+            let raya = rgb(36, 36, 42);
+            for k in [-1.0, 0.0, 1.0] {
+                c.trazar(&[(k * 8.0, -104.0), (k * 7.0, -93.0)], 3.0, raya, ENCIMA);
+            }
+            for k in 0..3 {
+                let y = -48.0 + k as f32 * 12.0;
+                c.trazar(&[(-36.0, y), (-28.0, y + 3.0), (-21.0, y + 1.0)], 3.5, raya, ENCIMA);
+                c.trazar(&[(36.0, y), (28.0, y + 3.0), (21.0, y + 1.0)], 3.5, raya, ENCIMA);
+            }
+            for t in [0.45, 0.7, 0.92] {
+                let (x, y) = bezier(t);
+                c.circulo(x, y, 5.0, raya, ENCIMA);
+            }
+            // manchas blancas: hocico, pecho, un costado y patitas
+            c.ovalo(0.0, -67.0, 12.0, 8.0, BLANCO_G, ENCIMA);
+            c.ovalo(0.0, -42.0, 12.0, 17.0, BLANCO_G, ENCIMA);
+            c.circulo(-21.0, -22.0, 10.0, BLANCO_G, ENCIMA);
+            c.ovalo(-11.0, -4.0, 11.0, 8.0, BLANCO_G, ENCIMA);
+            c.ovalo(11.0, -4.0, 11.0, 8.0, BLANCO_G, ENCIMA);
         }
         Pelaje::Naranjo => {
             c.ovalo(0.0, -42.0, 14.0, 20.0, rgb(252, 214, 160), ENCIMA); // pecho claro
@@ -245,7 +261,7 @@ fn manchas(c: &mut Capa, g: &Gato) {
 }
 
 fn cara(c: &mut Capa, g: &Gato) {
-    let oscuro = matches!(g.pelaje, Pelaje::Smoking | Pelaje::CalicoNegra);
+    let oscuro = matches!(g.pelaje, Pelaje::Smoking | Pelaje::CalicoNegra | Pelaje::GrisRayado);
     // interior de las orejas (en el smoking y la calico una oreja es de color)
     c.poligono(&[(-25.0, -90.0), (-23.0, -108.0), (-12.0, -98.0)], ROSA, ENCIMA);
     c.poligono(&[(25.0, -90.0), (23.0, -108.0), (12.0, -98.0)], ROSA, ENCIMA);
@@ -282,7 +298,7 @@ pub fn dibujar(l: &mut Lienzo, g: &Gato, x: f32, y: f32, s: f32) {
     let Some(pix) = Pixmap::new(w, h) else { return };
     let mut c = Capa { pix, s, ox: w as f32 / 2.0, oy: h as f32 - 6.0 * s, m: if g.espejo { -1.0 } else { 1.0 } };
     let base = pelo_base(g.pelaje);
-    let contorno = if matches!(g.pelaje, Pelaje::Smoking | Pelaje::CalicoNegra) { rgb(25, 24, 30) } else { oscurecer(base, 0.45) };
+    let contorno = if matches!(g.pelaje, Pelaje::Smoking | Pelaje::CalicoNegra | Pelaje::GrisRayado) { rgb(25, 24, 30) } else { oscurecer(base, 0.45) };
     silueta(&mut c, g, contorno, 1.8);
     silueta(&mut c, g, base, 0.0);
     manchas(&mut c, g);
@@ -329,7 +345,7 @@ impl Manada {
                 g(Pelaje::Blanco, false, false, azul, 1.0),
                 g(Pelaje::CalicoNegra, true, true, verde, 1.0),
                 g(Pelaje::NaranjoPalido, false, false, ambar, 0.8),
-                g(Pelaje::Vaquita, false, true, verde, 1.0),
+                g(Pelaje::GrisRayado, false, true, verde, 1.0),
             ],
             lugar: [0, 1, 2, 3, 4, 5, 6, 7],
         }

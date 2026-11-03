@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Nidito
+Description=Pantalla de carga de Nidito: el paisaje con los gatitos y el nombre en colores
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/nidito
+ScriptFile=/usr/share/plymouth/themes/nidito/nidito.script

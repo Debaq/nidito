@@ -15,6 +15,8 @@ pub struct Config {
     pub pausa_ojos: u32,
     /// (día, mes) del cumpleaños
     pub cumpleanos: Option<(u32, u32)>,
+    /// idioma con que parte el escritorio: "es", "en" o "ambos"
+    pub idioma: String,
 }
 
 impl Default for Config {
@@ -29,6 +31,7 @@ impl Default for Config {
             juegos_min: 20,
             pausa_ojos: 20,
             cumpleanos: None,
+            idioma: "es".into(),
         }
     }
 }
@@ -51,6 +54,7 @@ pub fn leer_en(c: &mut Config, txt: &str) {
                 "juegos_min" => c.juegos_min = v.parse().unwrap_or(20),
                 "pausa_ojos" => c.pausa_ojos = v.parse().unwrap_or(20),
                 "cumpleanos" => c.cumpleanos = leer_fecha(&v),
+                "idioma" if !v.is_empty() => c.idioma = v,
                 _ => {}
             }
         }

@@ -1,12 +1,13 @@
 [Unit]
 Description=Instalador de Nidito
 ConditionKernelCommandLine=nidito.instalar
-After=systemd-user-sessions.service getty-pre.target
+After=systemd-user-sessions.service getty-pre.target plymouth-quit-wait.service
 Conflicts=getty@tty1.service
 
 [Service]
 Type=idle
-ExecStart=/usr/local/bin/nidito-instalar
+Environment=TERM=linux
+ExecStart=/usr/local/bin/nidito --instalador
 StandardInput=tty
 StandardOutput=tty
 StandardError=tty

@@ -1,5 +1,7 @@
 //! Nidito: escritorio infantil. Dibuja todo por CPU (tiny-skia) en una ventana X11 a pantalla completa.
+#![cfg_attr(target_arch = "wasm32", allow(dead_code, unused_imports))]
 
+mod almacen;
 mod apps;
 mod captura;
 mod config;
@@ -14,15 +16,22 @@ mod padres;
 mod sonidos;
 mod tiempo;
 mod voz;
+#[cfg(not(target_arch = "wasm32"))]
+mod vozgen;
+#[cfg(not(target_arch = "wasm32"))]
+mod instalador;
+#[cfg(not(target_arch = "wasm32"))]
+mod arranque;
 
 use apps::{Ev, T};
 use escritorio::{Accion, Escritorio};
 use std::num::NonZeroU32;
 use std::rc::Rc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use web_time::Instant;
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
-use winit::event::{ElementState, WindowEvent};
+use winit::event::{ElementState, TouchPhase, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{Key, KeyCode, ModifiersState, NamedKey, PhysicalKey};
 use winit::window::{Fullscreen, Window, WindowId};
@@ -92,15 +101,28 @@ impl Programa {
                 self.codigo_salida = c;
                 el.exit();
             }
+            #[cfg(target_arch = "wasm32")]
+            Accion::Apagar | Accion::Reiniciar => {
+                // en el navegador "apagar" vuelve a empezar
+                if let Some(w) = web_sys::window() {
+                    let _ = w.location().reload();
+                }
+            }
+            #[cfg(not(target_arch = "wasm32"))]
             Accion::Apagar => {
-                // deja que suene la despedida
-                std::thread::sleep(Duration::from_millis(1500));
+                // deja que suene la despedida (atendiendo el audio, si no la voz nunca empieza)
+                let fin = Instant::now() + Duration::from_millis(1800);
+                while Instant::now() < fin {
+                    self.cx.audio.actualizar();
+                    std::thread::sleep(Duration::from_millis(30));
+                }
                 if self.desarrollo {
                     el.exit();
                 } else {
                     let _ = std::process::Command::new("systemctl").arg("poweroff").spawn();
                 }
             }
+            #[cfg(not(target_arch = "wasm32"))]
             Accion::Reiniciar => {
                 if self.desarrollo {
                     el.exit();
@@ -188,6 +210,17 @@ impl ApplicationHandler for Programa {
             return;
         }
         let mut attrs = Window::default_attributes().with_title("Nidito");
+        #[cfg(target_arch = "wasm32")]
+        {
+            use wasm_bindgen::JsCast;
+            use winit::platform::web::WindowAttributesExtWebSys;
+            let canvas = web_sys::window()
+                .and_then(|w| w.document())
+                .and_then(|d| d.get_element_by_id("nidito"))
+                .and_then(|e| e.dyn_into::<web_sys::HtmlCanvasElement>().ok());
+            attrs = attrs.with_canvas(canvas).with_focusable(true).with_prevent_default(true);
+        }
+        #[cfg(not(target_arch = "wasm32"))]
         if self.desarrollo {
             attrs = attrs.with_inner_size(PhysicalSize::new(W, H));
         } else {
@@ -203,6 +236,8 @@ impl ApplicationHandler for Programa {
                 .with_fullscreen(Some(Fullscreen::Borderless(None)));
         }
         let win = Rc::new(el.create_window(attrs).expect("no se pudo crear la ventana"));
+        #[cfg(target_arch = "wasm32")]
+        win.focus_window();
         win.set_cursor_visible(false);
         win.focus_window();
         let ctx = softbuffer::Context::new(win.clone()).expect("softbuffer");
@@ -239,16 +274,40 @@ impl ApplicationHandler for Programa {
                     }
                 }
             }
+            // pantallas táctiles (tablets, celulares en la versión web): un dedo = el mouse
+            WindowEvent::Touch(t) => {
+                let p = self.a_lienzo(t.location.x, t.location.y);
+                self.cx.raton = p;
+                match t.phase {
+                    TouchPhase::Started => {
+                        self.enviar(Ev::Mueve(p.0, p.1), el);
+                        self.cx.apretado = true;
+                        self.enviar(Ev::Clic(p.0, p.1), el);
+                    }
+                    TouchPhase::Moved => self.enviar(Ev::Mueve(p.0, p.1), el),
+                    TouchPhase::Ended | TouchPhase::Cancelled => {
+                        self.cx.apretado = false;
+                        self.enviar(Ev::Suelta(p.0, p.1), el);
+                    }
+                }
+            }
             WindowEvent::ModifiersChanged(m) => self.mods = m.state(),
             WindowEvent::KeyboardInput { event, .. } => {
                 if event.state != ElementState::Pressed {
                     return;
                 }
-                if self.mods.control_key() && self.mods.alt_key() && event.physical_key == PhysicalKey::Code(KeyCode::KeyP) {
+                if !cfg!(target_arch = "wasm32") && self.mods.control_key() && self.mods.alt_key() && event.physical_key == PhysicalKey::Code(KeyCode::KeyP) {
                     self.esc.abrir_padres(&mut self.cx);
                     return;
                 }
                 if event.repeat {
+                    return;
+                }
+                // botón de encendido (llega como tecla "Power")
+                if event.logical_key == Key::Named(NamedKey::Power) || event.physical_key == PhysicalKey::Code(KeyCode::Power) {
+                    if let Some(a) = self.esc.boton_apagar(&mut self.cx) {
+                        self.accion(a, el);
+                    }
                     return;
                 }
                 let e = match &event.logical_key {
@@ -284,6 +343,15 @@ impl ApplicationHandler for Programa {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    use winit::platform::web::EventLoopExtWebSys;
+    console_error_panic_hook::set_once();
+    let el = EventLoop::new().expect("no se pudo iniciar");
+    el.spawn_app(Programa::nuevo());
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     match args.get(1).map(|s| s.as_str()) {
@@ -307,6 +375,53 @@ fn main() {
             let sal = format!("{:016x}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(1) as u64 ^ 0x5bd1e995);
             println!("sal={sal}");
             println!("clave={}", tiempo::hash(&sal, &clave));
+            return;
+        }
+        Some("--arranque") => {
+            // nidito --arranque <carpeta>   (imágenes de la pantalla de carga)
+            if let Err(e) = arranque::generar(args.get(2).map(|s| s.as_str()).unwrap_or("arranque")) {
+                eprintln!("no se pudo: {e}");
+                std::process::exit(1);
+            }
+            return;
+        }
+        Some("--instalador") => {
+            instalador::ejecutar(args.get(2).map(|s| s.as_str()) == Some("--simular"));
+            return;
+        }
+        Some("--instalador-capturas") => {
+            instalador::capturas(args.get(2).map(|s| s.as_str()).unwrap_or("capturas-instalador"));
+            return;
+        }
+        Some("--voces-nombre") => {
+            // nidito --voces-nombre <nidito.conf> <carpeta-voces> <carpeta-piper> <modelo-es.onnx> <modelo-en.onnx>
+            let a: Vec<std::path::PathBuf> = args[2..].iter().map(Into::into).collect();
+            if a.len() != 5 {
+                eprintln!("uso: nidito --voces-nombre <nidito.conf> <carpeta-voces> <carpeta-piper> <modelo-es.onnx> <modelo-en.onnx>");
+                std::process::exit(2);
+            }
+            match vozgen::generar(&a[0], &a[1], &a[2], &a[3], &a[4]) {
+                Ok(n) => println!("LISTO {n}"),
+                Err(e) => {
+                    eprintln!("ERROR {e}");
+                    std::process::exit(1);
+                }
+            }
+            return;
+        }
+        Some("--empaquetar-voces") => {
+            // nidito --empaquetar-voces <carpeta-con-ogg> <voces.bin>   (para la versión web)
+            let (Some(dir), Some(salida)) = (args.get(2), args.get(3)) else {
+                eprintln!("uso: nidito --empaquetar-voces <carpeta> <voces.bin>");
+                std::process::exit(2);
+            };
+            match voz::empaquetar(std::path::Path::new(dir), std::path::Path::new(salida)) {
+                Ok(n) => println!("{n} audios en {salida}"),
+                Err(e) => {
+                    eprintln!("no se pudo empaquetar: {e}");
+                    std::process::exit(1);
+                }
+            }
             return;
         }
         Some("--version") => {

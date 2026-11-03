@@ -16,6 +16,11 @@ libxrandr
 libxi
 xterm
 ttf-dejavu
+# pantalla de carga y letra grande para el instalador
+plymouth
+terminus-font
+# para que Nidito pueda tomar el botón de encendido (systemd-inhibit sin ser root)
+polkit
 # sonido y voz de respaldo
 alsa-utils
 alsa-lib

@@ -72,9 +72,7 @@ fn sticker_r(i: usize) -> R {
     R::new(878.0 + (i % 2) as f32 * 58.0, 86.0 + (i / 2) as f32 * 84.0, 54.0, 76.0)
 }
 
-fn dir_clase() -> std::path::PathBuf {
-    ruta_datos("Clases").join("mi-clase")
-}
+const DIR_CLASE: &str = "Clases/mi-clase";
 
 pub fn frase_fin(nombre: &str) -> String {
     if nombre.trim().is_empty() {
@@ -122,10 +120,7 @@ impl Clase {
     }
 
     fn guardar(&self) {
-        let d = dir_clase();
-        if std::fs::create_dir_all(&d).is_err() {
-            return;
-        }
+        let d = DIR_CLASE;
         let mut s = String::new();
         for (i, di) in self.diapos.iter().enumerate() {
             s.push_str(&format!("DIAPO {}\n", di.color));
@@ -135,21 +130,23 @@ impl Clase {
                     s.push_str(&format!("STICKER {k} {x} {y}\n"));
                 }
             }
-            let _ = di.dibujo.save_png(d.join(format!("dibujo-{i}.png")));
+            if let Ok(png) = di.dibujo.encode_png() {
+                crate::almacen::escribir(&format!("{d}/dibujo-{i}.png"), &png);
+            }
         }
-        let _ = std::fs::write(d.join("clase.txt"), s);
+        crate::almacen::escribir(&format!("{d}/clase.txt"), s.as_bytes());
     }
 
     fn cargar(&mut self) {
-        let d = dir_clase();
-        let Ok(txt) = std::fs::read_to_string(d.join("clase.txt")) else { return };
+        let d = DIR_CLASE;
+        let Some(txt) = crate::almacen::leer_texto(&format!("{d}/clase.txt")) else { return };
         for linea in txt.lines() {
             let (k, v) = linea.split_once(' ').unwrap_or((linea, ""));
             match k {
                 "DIAPO" => {
                     let i = self.diapos.len();
                     let mut di = Diapo::nueva(v.trim().parse().unwrap_or(0) % COLORES_TITULO.len());
-                    if let Ok(p) = Pixmap::load_png(d.join(format!("dibujo-{i}.png"))) {
+                    if let Some(p) = crate::almacen::leer(&format!("{d}/dibujo-{i}.png")).and_then(|b| Pixmap::decode_png(&b).ok()) {
                         if p.width() == SW as u32 && p.height() == SH as u32 {
                             di.dibujo = p;
                         }

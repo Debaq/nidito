@@ -1,0 +1,37 @@
+# Pantalla de carga de Nidito (Plymouth, módulo "script").
+# Las imágenes las dibuja `nidito --arranque` al armar la ISO.
+
+ancho = Window.GetWidth();
+alto = Window.GetHeight();
+
+fondo.imagen = Image("fondo.png").Scale(ancho, alto);
+fondo.sprite = Sprite(fondo.imagen);
+fondo.sprite.SetZ(-10);
+
+esc = Math.Min(ancho / 1024, alto / 600);
+logo.imagen = Image("logo.png");
+logo.imagen = logo.imagen.Scale(logo.imagen.GetWidth() * esc, logo.imagen.GetHeight() * esc);
+logo.sprite = Sprite(logo.imagen);
+logo.sprite.SetX(ancho / 2 - logo.imagen.GetWidth() / 2);
+logo.sprite.SetY(alto * 0.4 - logo.imagen.GetHeight() / 2);
+
+punto_img = Image("punto.png");
+punto_img = punto_img.Scale(punto_img.GetWidth() * esc, punto_img.GetHeight() * esc);
+for (i = 0; i < 3; i++) {
+    punto[i] = Sprite(punto_img);
+    punto[i].SetX(ancho / 2 + (i - 1) * 40 * esc - punto_img.GetWidth() / 2);
+    punto[i].SetY(alto * 0.62);
+}
+
+global.t = 0;
+fun refrescar() {
+    global.t++;
+    # cada punto salta y brilla por turno
+    for (i = 0; i < 3; i++) {
+        fase = Math.Sin((global.t / 9) - i * 0.9);
+        if (fase < 0) fase = 0;
+        global.punto[i].SetOpacity(0.35 + 0.65 * fase);
+        global.punto[i].SetY(global.alto * 0.62 - fase * 10 * global.esc);
+    }
+}
+Plymouth.SetRefreshFunction(refrescar);
