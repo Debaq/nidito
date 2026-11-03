@@ -119,7 +119,7 @@ En **[Releases](https://github.com/Debaq/nidito/releases)** hay tres archivos:
 4. Elige **"Instalar Nidito"**. El instalador pregunta, en este orden:
    1. el idioma del instalador (español o inglés),
    2. el teclado,
-   3. el disco (hay que escribir **BORRAR** para confirmar),
+   3. el disco (para confirmar hay que escribir **BORRAR**, o **ERASE** si el instalador está en inglés),
    4. el nombre y apodo del niño o niña (opcional: sin nombre saluda con "¡Hola!"),
    5. el idioma de Nidito (español, inglés o los dos),
    6. las voces (mujer u hombre, en español y en inglés; con **E** se escuchan),

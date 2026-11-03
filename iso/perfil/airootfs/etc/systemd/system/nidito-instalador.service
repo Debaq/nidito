@@ -2,7 +2,8 @@
 Description=Instalador de Nidito
 ConditionKernelCommandLine=nidito.instalar
 After=systemd-user-sessions.service getty-pre.target plymouth-quit-wait.service
-Conflicts=getty@tty1.service
+# Sin Conflicts=getty@tty1: systemd lo aplicaba aunque el instalador no corriera, y la sesión de
+# "Probar" nunca partía (pantalla negra). getty@tty1 ya se salta solo con nidito.instalar (autologin.conf).
 
 [Service]
 Type=idle

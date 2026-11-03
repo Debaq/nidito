@@ -614,7 +614,7 @@ impl Inst {
         let (titulo, color) = self.titulo();
         let paso = self.flujo().iter().position(|&p| p == self.p).filter(|&i| i >= 2).map(|i| format!(" {}/{} ", i - 1, self.flujo().len() - 2));
         let mut bloque = Block::bordered()
-            .border_type(BorderType::Rounded)
+            .border_type(BorderType::Plain)
             .border_style(Style::new().fg(color))
             .title(Line::from(format!(" {titulo} ")).style(Style::new().fg(color).bold()))
             .padding(Padding::new(2, 2, 1, 0));
@@ -1074,6 +1074,10 @@ fn a_svg(buf: &ratatui::buffer::Buffer) -> String {
                 "╮" => Some(format!("M{x0} {my}H{}Q{mx} {my} {mx} {}V{}", mx - 4, my + 4, y0 + ch)),
                 "╰" => Some(format!("M{mx} {y0}V{}Q{mx} {my} {} {my}H{}", my - 4, mx + 4, x0 + cw)),
                 "╯" => Some(format!("M{mx} {y0}V{}Q{mx} {my} {} {my}H{x0}", my - 4, mx - 4)),
+                "┌" => Some(format!("M{} {my}H{mx}V{}", x0 + cw, y0 + ch)),
+                "┐" => Some(format!("M{x0} {my}H{mx}V{}", y0 + ch)),
+                "└" => Some(format!("M{mx} {y0}V{my}H{}", x0 + cw)),
+                "┘" => Some(format!("M{mx} {y0}V{my}H{x0}")),
                 _ => None,
             };
             if let Some(d) = linea {
