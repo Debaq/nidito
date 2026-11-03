@@ -1,0 +1,10 @@
+#!/bin/bash
+# Cambia la clave de adultos de Nidito (también la de root). Usar como root: su -c nidito-clave
+[ "$EUID" -eq 0 ] || { echo "Ejecuta como root:  su -c nidito-clave"; exit 1; }
+read -rsp "Nueva clave: " a; echo
+read -rsp "Repite la clave: " b; echo
+if [ -z "$a" ] || [ "$a" != "$b" ]; then echo "Las claves no coinciden."; exit 1; fi
+sed -i '/^sal=/d;/^clave=/d' /etc/nidito.conf
+/usr/local/bin/nidito --hash-clave "$a" >> /etc/nidito.conf
+echo "root:$a" | chpasswd
+echo "Listo. La clave nueva vale desde el próximo inicio de Nidito."

@@ -1,0 +1,18 @@
+#!/bin/sh
+# Sesión gráfica de Nidito (sin gestor de ventanas: Nidito ES el escritorio).
+xset s 900 900 2>/dev/null
+xset dpms 1200 1200 1200 2>/dev/null
+# Controles intermedios siempre al máximo (si quedan bajos frenan todo el volumen).
+for c in PCM Speaker Headphone Front; do amixer -q sset "$c" 100% unmute 2>/dev/null; done
+# Volumen general: 90% la primera vez; después se respeta lo elegido en el menú de adultos (Ctrl+Alt+P).
+if [ ! -f "$HOME/.config/nidito/volumen-listo2" ]; then
+    amixer -q sset Master 90% unmute 2>/dev/null
+    mkdir -p "$HOME/.config/nidito" && touch "$HOME/.config/nidito/volumen-listo2"
+fi
+while true; do
+    /usr/local/bin/nidito
+    if [ $? -eq 20 ]; then
+        xterm -fa "DejaVu Sans Mono" -fs 13 -maximized -title "Terminal - escribe exit para volver a Nidito"
+    fi
+    sleep 1
+done

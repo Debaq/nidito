@@ -1,0 +1,15 @@
+# Compilación y artefactos
+escritorio/target/
+build/
+salida/
+*.iso
+
+# Voces generadas (edge-tts): se regeneran con ./preparar.sh y contienen el nombre del niño
+voces/.venv/
+voces/paquete/
+voces/originales/
+voces/muestras/
+
+# Datos personales: perfiles de cada niño y notas locales
+perfiles/
+ESTADO.md

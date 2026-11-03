@@ -1,0 +1,30 @@
+# sistema base y arranque
+base
+linux
+mkinitcpio
+mkinitcpio-archiso
+syslinux
+grub
+# gráficos (dibujo por CPU, sin aceleración)
+xorg-server
+xorg-xinit
+xorg-xset
+xf86-input-libinput
+libxkbcommon-x11
+libxcursor
+libxrandr
+libxi
+xterm
+ttf-dejavu
+# sonido y voz de respaldo
+alsa-utils
+alsa-lib
+espeak-ng
+# instalador
+arch-install-scripts
+parted
+dosfstools
+e2fsprogs
+pv
+nano
+less
