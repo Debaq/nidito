@@ -137,7 +137,7 @@ pub fn ejecutar(dir: &str) {
 
     let cerrar = |esc: &mut Escritorio, cx: &mut Cx| clic(esc, cx, 1024.0 - 6.0 - 50.0 + 4.0 + 23.0, 19.0);
 
-    let apps: [(&str, &str); 10] = [
+    let apps: [(&str, &str); 12] = [
         ("Escribir", "05b-escribir"),
         ("Contar", "06-contar"),
         ("Mi clase", "07-clase"),
@@ -148,6 +148,8 @@ pub fn ejecutar(dir: &str) {
         ("Teclas", "12-teclas"),
         ("Mis dibujos", "13-mis-dibujos"),
         ("Enciclopedia", "20-enciclopedia"),
+        ("Figuras", "22-figuras"),
+        ("Música", "23-musica"),
     ];
     for (titulo, nombre) in apps {
         abrir_menu(&mut esc, &mut cx, titulo);
@@ -235,6 +237,33 @@ pub fn ejecutar(dir: &str) {
                 }
                 paso(&mut esc, &mut cx, 0.3);
                 foto(&mut esc, &mut cx, &mut l, dir, "20f-enciclopedia-pies");
+                cerrar(&mut esc, &mut cx);
+                continue;
+            }
+            "Figuras" => {
+                clic(&mut esc, &mut cx, ox + 30.0 + 240.0 * 2.0 + 110.0, oy + 92.0 + 99.0); // triángulo
+                paso(&mut esc, &mut cx, 0.4);
+                foto(&mut esc, &mut cx, &mut l, dir, nombre);
+                clic(&mut esc, &mut cx, ox + 222.0 + 95.0, oy + 41.0); // jugar
+                clic(&mut esc, &mut cx, ox + 80.0 + 130.0, oy + 300.0);
+                clic(&mut esc, &mut cx, ox + 80.0 + 290.0 + 130.0, oy + 300.0);
+                paso(&mut esc, &mut cx, 0.7);
+                ev(&mut esc, &mut cx, Ev::Mueve(ox + 900.0, oy + 480.0));
+                foto(&mut esc, &mut cx, &mut l, dir, "22b-figuras-jugar");
+                cerrar(&mut esc, &mut cx);
+                continue;
+            }
+            "Música" => {
+                texto(&mut esc, &mut cx, "135");
+                paso(&mut esc, &mut cx, 0.1);
+                foto(&mut esc, &mut cx, &mut l, dir, nombre);
+                clic(&mut esc, &mut cx, ox + 222.0 + 100.0, oy + 41.0); // Estrellita
+                for b in [0.0, 0.0, 4.0, 4.0] {
+                    clic(&mut esc, &mut cx, ox + 58.0 + b * 112.0 + 46.0, oy + 300.0);
+                }
+                paso(&mut esc, &mut cx, 0.1);
+                ev(&mut esc, &mut cx, Ev::Mueve(ox + 900.0, oy + 480.0));
+                foto(&mut esc, &mut cx, &mut l, dir, "23b-musica-estrellita");
                 cerrar(&mut esc, &mut cx);
                 continue;
             }

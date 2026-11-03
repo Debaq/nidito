@@ -15,6 +15,8 @@ pub struct Sonidos {
     pub aplauso: Vec<f32>,
     pub tic: Vec<f32>,
     pub notas: Vec<Vec<f32>>,
+    /// xilófono: escala de Do mayor (Do5 a Do6)
+    pub xilo: Vec<Vec<f32>>,
     /// "Cumpleaños feliz" (melodía tradicional, dominio público)
     pub cumple: Vec<f32>,
 }
@@ -190,7 +192,27 @@ impl Sonidos {
             .map(recortar)
             .collect();
 
+        let mayor = [523.25, 587.33, 659.25, 698.46, 783.99, 880.0, 987.77, 1046.5];
+        let xilo = mayor
+            .iter()
+            .map(|f| {
+                let mut g = Ruido(7);
+                (0..largo(0.9))
+                    .map(|i| {
+                        let t = i as f32 / SR as f32;
+                        let env = (t / 0.002).min(1.0);
+                        // fundamental larga + parcial 3x que se apaga rápido + golpe de la baqueta
+                        0.32 * env * (TAU * f * t).sin() * (-t * 6.0).exp()
+                            + 0.12 * (TAU * 3.0 * f * t).sin() * (-t * 30.0).exp()
+                            + 0.08 * g.s() * (-t * 300.0).exp()
+                    })
+                    .collect()
+            })
+            .map(recortar)
+            .collect();
+
         Sonidos {
+            xilo,
             ding: recortar(ding),
             fanfarria: recortar(fanfarria),
             boop: recortar(boop),

@@ -48,6 +48,8 @@ pub fn lista() -> Vec<Info> {
         Info { titulo: "Teclas", en: "Keys", color: rgb(150, 90, 220), ic: 8, juego: true, crear: apps::teclas::Teclas::nuevo },
         Info { titulo: "Enciclopedia", en: "Encyclopedia", color: rgb(60, 150, 90), ic: 11, juego: false, crear: apps::enciclopedia::Enciclopedia::nuevo },
         Info { titulo: "Mis dibujos", en: "My drawings", color: rgb(110, 120, 140), ic: 9, juego: false, crear: apps::galeria::Galeria::nuevo },
+        Info { titulo: "Figuras", en: "Shapes", color: rgb(240, 120, 60), ic: 13, juego: false, crear: apps::figuras::Figuras::nuevo },
+        Info { titulo: "Música", en: "Music", color: rgb(130, 90, 210), ic: 14, juego: true, crear: apps::musica::Musica::nuevo },
     ];
     // La cámara solo aparece si hay una conectada.
     if apps::camara::hay_camara() {
@@ -133,6 +135,24 @@ pub fn icono(l: &mut Lienzo, i: usize, x: f32, y: f32, s: f32, color: C) {
             l.circulo(x, y + 4.0 * u, 11.0 * u, rgb(90, 140, 220));
             l.circulo(x - 4.0 * u, y, 3.5 * u, alfa(BLANCO, 0.8));
             l.circulo(x + 26.0 * u, y - 12.0 * u, 4.0 * u, ROJO);
+        }
+        13 => {
+            // figuras: círculo, triángulo y cuadrado
+            apps::figuras::dibujar_forma(l, apps::figuras::Forma::Circulo, x - 17.0 * u, y - 14.0 * u, 36.0 * u, ROJO);
+            apps::figuras::dibujar_forma(l, apps::figuras::Forma::Triangulo, x + 17.0 * u, y - 14.0 * u, 36.0 * u, AMARILLO);
+            apps::figuras::dibujar_forma(l, apps::figuras::Forma::Cuadrado, x, y + 20.0 * u, 34.0 * u, CELESTE);
+        }
+        14 => {
+            // xilófono con baqueta
+            l.linea(x - 36.0 * u, y - 10.0 * u, x + 36.0 * u, y - 2.0 * u, 4.0 * u, rgb(150, 100, 60));
+            l.linea(x - 36.0 * u, y + 18.0 * u, x + 36.0 * u, y + 10.0 * u, 4.0 * u, rgb(150, 100, 60));
+            for k in 0..5 {
+                let h = (46.0 - k as f32 * 6.0) * u;
+                let bx = x - 30.0 * u + k as f32 * 15.0 * u;
+                l.rrect(bx - 6.0 * u, y + 4.0 * u - h / 2.0 - k as f32 * u, 12.0 * u, h, 3.0 * u, ARCOIRIS[k]);
+            }
+            l.linea(x + 8.0 * u, y + 36.0 * u, x + 34.0 * u, y - 22.0 * u, 4.0 * u, rgb(230, 200, 150));
+            l.circulo(x + 34.0 * u, y - 24.0 * u, 7.0 * u, ROJO);
         }
         11 => {
             // libro abierto con una huella
@@ -240,7 +260,7 @@ pub fn icono_r(i: usize) -> R {
 
 const INICIO: R = R::new(6.0, BARRA_Y + 5.0, 118.0, BARRA_H - 10.0);
 const IDIOMA: R = R::new(W as f32 - 236.0, BARRA_Y + 5.0, 140.0, BARRA_H - 10.0);
-const MENU: R = R::new(6.0, BARRA_Y - 496.0, 360.0, 490.0);
+const MENU: R = R::new(6.0, BARRA_Y - 550.0, 360.0, 544.0);
 
 pub fn menu_item(i: usize) -> R {
     R::new(MENU.x + 12.0 + (i % 2) as f32 * 170.0, MENU.y + 76.0 + (i / 2) as f32 * 50.0, 162.0, 46.0)

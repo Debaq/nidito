@@ -7,10 +7,12 @@ pub mod contar;
 pub mod enciclopedia;
 pub mod english;
 pub mod escribir;
+pub mod figuras;
 pub mod galeria;
 pub mod globos;
 pub mod letras;
 pub mod memorice;
+pub mod musica;
 pub mod pintar;
 pub mod teclas;
 
@@ -206,6 +208,8 @@ fn catalogo_de(nombre: &str, apodo: &str) -> Vec<crate::voz::Parte> {
     escribir::frases(&mut f);
     enciclopedia::frases(&mut f);
     camara::frases(&mut f);
+    figuras::frases(&mut f);
+    musica::frases(&mut f);
     crate::palabras::frases(&mut f, nombre, apodo);
     let mut vistos = std::collections::HashSet::new();
     f.0.retain(|p| vistos.insert(p.clone()));

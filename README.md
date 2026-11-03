@@ -9,11 +9,13 @@ Nidito es un escritorio propio escrito en Rust (sin gestor de ventanas, todo dib
 ## Qué trae
 
 - **Escritorio con ventanas reales**, barra con botón de Inicio, hora e idioma (español, inglés o ambos).
-- **13 apps**: Pintar, Letras, Escribir (tipo WordPad), Contar, Mi clase, Cocina, English, Memorice, Globos, Teclas, Mis dibujos, Enciclopedia y Cámara.
+- **15 apps**: Pintar, Letras, Escribir (tipo WordPad), Contar, Mi clase, Cocina, English, Memorice, Globos, Teclas, Mis dibujos, Enciclopedia, Figuras, Música y Cámara.
+- **Figuras**: ocho figuras geométricas con su nombre y cómo son. En el juego ("¿Dónde está el triángulo?") parte con cuatro figuras fáciles y suma las demás a medida que gana estrellas; los colores son al azar para que aprenda la forma y no el color, y si se equivoca dos veces la figura correcta brilla para ayudar.
+- **Música**: un xilófono de ocho barras (Do a Do) para tocar con el mouse, arrastrando o con el teclado, y dos canciones tradicionales para seguir (*Estrellita* y *Los pollitos*): la barra que toca brilla, y también se pueden escuchar enteras.
 - **Cámara**: se ve en espejo, cuenta 3-2-1 y saca la foto, que queda en "Mis dibujos". Solo aparece si el equipo tiene cámara (V4L2, YUYV o MJPG).
 - **Enciclopedia**: temas con fotos reales y textos cortos que lee la voz, todo en una pantalla y sin deslizar. Trae dos temas: **Animales** (20, con fotos reales y el sonido de 15 de ellos, incluye fauna chilena: pudú, cóndor, pingüino de Humboldt) y **Cuerpo humano** (15 partes, con ilustraciones amables en vez de fotos).
-- **Voz**: unas 820 frases pregrabadas con voces neuronales (edge-tts), procesadas para que se escuchen bien en los parlantes chicos de un netbook. Si falta alguna frase se usa espeak-ng.
-- **Control de tiempo**: al encender, un adulto elige la duración de la sesión (20/30/45/60 min o sin límite). Solo cuenta el tiempo activo, y los juegos tienen un tope diario configurable (20 min por defecto). Pintar, Letras, Escribir y Mi clase no cuentan para ese tope.
+- **Voz**: unas 1200 frases pregrabadas con voces neuronales (edge-tts), procesadas para que se escuchen bien en los parlantes chicos de un netbook. Si falta alguna frase se usa espeak-ng.
+- **Control de tiempo**: al encender, un adulto elige la duración de la sesión (20/30/45/60 min o sin límite). Solo cuenta el tiempo activo, y los juegos tienen un tope diario configurable (20 min por defecto). Pintar, Letras, Escribir, Mi clase, Enciclopedia y Figuras no cuentan para ese tope.
 - **Menú de adultos** (`Ctrl+Alt+P`, pide la clave de adultos): volumen, +10 minutos, bloquear, **Ajustes**, terminal, reiniciar, apagar y **Actualizar** (desde un pendrive, sin reinstalar). En Ajustes se cambian los minutos de juego, la pausa para los ojos y el cumpleaños; quedan guardados en `~/.config/nidito.conf`.
 - **Pausa para los ojos**: cada 20 minutos de uso (configurable, 0 = nunca) aparece una pantalla de 20 segundos que pide mirar algo lejos (regla 20-20-20).
 - **Cumpleaños**: ese día el escritorio tiene globos y banderines, saluda con "¡Feliz cumpleaños!" y suena "Cumpleaños feliz".
@@ -33,8 +35,12 @@ Nidito es un escritorio propio escrito en Rust (sin gestor de ventanas, todo dib
 | Memorice | Globos |
 | ![Enciclopedia](capturas/enciclopedia.jpg) | ![Enciclopedia: animales](capturas/enciclopedia-perro.jpg) |
 | Enciclopedia | Enciclopedia: animales |
-| ![Enciclopedia: cuerpo humano](capturas/enciclopedia-corazon.jpg) | ![Al encender: elegir el tiempo](capturas/elegir-tiempo.jpg) |
-| Enciclopedia: cuerpo humano | Al encender: elegir el tiempo |
+| ![Enciclopedia: cuerpo humano](capturas/enciclopedia-corazon.jpg) | ![Figuras](capturas/figuras.jpg) |
+| Enciclopedia: cuerpo humano | Figuras |
+| ![Figuras: juego](capturas/figuras-jugar.jpg) | ![Música](capturas/musica.jpg) |
+| Figuras: "¿Dónde está el cuadrado?" | Música: siguiendo *Estrellita* |
+| ![Al encender: elegir el tiempo](capturas/elegir-tiempo.jpg) | |
+| Al encender: elegir el tiempo | |
 | ![Menú de adultos](capturas/padres.jpg) | ![Ajustes](capturas/ajustes.jpg) |
 | Menú de adultos | Ajustes |
 | ![Pausa para los ojos](capturas/pausa-ojos.jpg) | ![Día de cumpleaños](capturas/cumpleanos.jpg) |
@@ -77,7 +83,7 @@ Si hay un solo perfil en `perfiles/`, `preparar.sh` lo usa sin preguntar. Si no 
 ### Probar el escritorio sin ISO
 
 ```bash
-cd escritorio && cargo build --release && cd ..
+cd escritorio && cargo build --release --target-dir target && cd ..
 HOME=/tmp/nidito-demo NIDITO_VENTANA=1 NIDITO_VOCES=$PWD/voces/paquete \
   WAYLAND_DISPLAY= ./escritorio/target/release/nidito
 ```

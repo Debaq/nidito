@@ -57,6 +57,7 @@ pub enum Son {
     Aplauso,
     Tic,
     Nota(usize),
+    Xilo(usize),
     Cumpleanos,
 }
 
@@ -99,6 +100,7 @@ impl Audio {
             Son::Aplauso => &so.aplauso,
             Son::Tic => &so.tic,
             Son::Nota(i) => &so.notas[i % so.notas.len()],
+            Son::Xilo(i) => &so.xilo[i % so.xilo.len()],
             Son::Cumpleanos => &so.cumple,
         };
         let _ = h.play_raw(SamplesBuffer::new(1, SR, datos.clone()).amplify(0.9));
